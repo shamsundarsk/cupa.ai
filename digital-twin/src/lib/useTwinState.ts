@@ -64,10 +64,10 @@ export function useTwinState(pollIntervalMs = 1500): UseTwinStateResult {
 
     async function poll() {
       try {
-        const mainAppUrl =
-          (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) ||
-          'http://localhost:3000'
-        const res = await fetch(`${mainAppUrl}/api/state`, { cache: 'no-store' })
+        // Same-origin proxy. The digital-twin's own Next.js server forwards
+        // to the main dashboard using a runtime env var — the URL never
+        // gets baked into the client bundle.
+        const res = await fetch('/api/state', { cache: 'no-store' })
         if (!res.ok) throw new Error('non-2xx')
         const data = (await res.json()) as Partial<AppState>
         if (cancelled) return

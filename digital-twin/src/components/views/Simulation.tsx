@@ -12,10 +12,6 @@ interface Props {
   kpiHistory: KpiSnapshot[]
 }
 
-const MAIN_APP =
-  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) ||
-  'http://localhost:3000'
-
 interface UpgradeProfile {
   multiplier: number
   paramScale: number
@@ -115,7 +111,7 @@ export default function Simulation({ state, derived, kpiHistory }: Props) {
     if (Object.keys(params).length === 0) return
     setPending(true)
     try {
-      await fetch(`${MAIN_APP}/api/twin-action`, {
+      await fetch('/api/twin-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'tune_machine', payload: { machineId, parameters: params } }),

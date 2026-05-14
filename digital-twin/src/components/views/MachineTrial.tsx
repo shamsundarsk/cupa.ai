@@ -9,10 +9,6 @@ interface Props {
   initialMachineId?: string
 }
 
-const MAIN_APP =
-  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) ||
-  'http://localhost:3000'
-
 interface TrialKnob {
   key: string
   label: string
@@ -77,7 +73,7 @@ export default function MachineTrial({ state, initialMachineId }: Props) {
     setPending(true)
     lastSentRef.current = Date.now()
     try {
-      await fetch(`${MAIN_APP}/api/twin-action`, {
+      await fetch('/api/twin-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

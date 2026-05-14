@@ -140,7 +140,7 @@ export default function DigitalTwinPage() {
     ])
     // Trigger a real action on the running plant via the cross-app endpoint.
     try {
-      await fetch(`${MAIN_APP_URL}/api/twin-action`, {
+      await fetch('/api/twin-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'inject_hazard', payload: target ? { machineId: target.id } : undefined }),

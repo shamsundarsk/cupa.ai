@@ -2,13 +2,12 @@
 
 import { StoryStep } from './storyStore'
 
-const MAIN_APP =
-  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) ||
-  'http://localhost:3000'
+// Same-origin proxy — the digital-twin's Next.js server forwards to the
+// main dashboard. No NEXT_PUBLIC_* needed in the client bundle.
 
 async function injectHazardOnMainApp(): Promise<void> {
   try {
-    await fetch(`${MAIN_APP}/api/twin-action`, {
+    await fetch('/api/twin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'inject_hazard' }),
@@ -20,7 +19,7 @@ async function injectHazardOnMainApp(): Promise<void> {
 
 async function resetAlertsOnMainApp(): Promise<void> {
   try {
-    await fetch(`${MAIN_APP}/api/twin-action`, {
+    await fetch('/api/twin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'reset_alerts' }),
