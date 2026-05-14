@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useStore } from '@/store/useStore'
 import dynamic from 'next/dynamic'
+import { Globe } from '@/components/ui/icons'
 
 const TwinCanvas = dynamic(() => import('./TwinCanvas'), { ssr: false })
 
@@ -69,7 +70,7 @@ export default function DigitalTwinViewer() {
           <Suspense fallback={
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="text-4xl mb-4 animate-pulse">🌐</div>
+                <Globe size={36} className="text-industrial-400 mx-auto mb-4 animate-pulse" />
                 <p className="text-carbon-400">Loading 3D environment...</p>
               </div>
             </div>

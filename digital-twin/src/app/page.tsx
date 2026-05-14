@@ -5,6 +5,54 @@ import dynamic from 'next/dynamic'
 
 const TwinCanvas = dynamic(() => import('@/components/TwinCanvas3D'), { ssr: false })
 
+/* ─── Inline SVG icons (no extra dependency) ─────────────────────────────── */
+function GlobeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a14.5 14.5 0 0 1 0 20 14.5 14.5 0 0 1 0-20Z" />
+    </svg>
+  )
+}
+
+function PlugZapIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="m6 16 6-6" />
+      <path d="m8 22 4-4" />
+      <path d="M14 6V2" />
+      <path d="M18 6V2" />
+      <path d="M22 10h-4" />
+      <path d="M22 14h-4" />
+      <path d="M16 4h-4l4 12 1.5-3.5" />
+    </svg>
+  )
+}
+
+
 // Types matching the main app
 interface MachineConfig {
   id: string
@@ -235,7 +283,7 @@ export default function DigitalTwinPage() {
     return (
       <div className="h-screen w-screen bg-[#0a0f1a] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl mb-4 animate-pulse">🌐</div>
+          <GlobeIcon className="mx-auto mb-4 animate-pulse text-emerald-400" size={56} />
           <p className="text-gray-400 text-lg">Connecting to main dashboard...</p>
         </div>
       </div>
@@ -247,7 +295,7 @@ export default function DigitalTwinPage() {
     return (
       <div className="h-screen w-screen bg-[#0a0f1a] flex items-center justify-center">
         <div className="text-center max-w-md">
-          <div className="text-6xl mb-6">🔌</div>
+          <PlugZapIcon className="mx-auto mb-6 text-red-400" size={72} />
           <h1 className="text-2xl font-bold text-white mb-3">Cannot Connect to Dashboard</h1>
           <p className="text-gray-400 mb-6">
             The main dashboard (localhost:3000) is not reachable. Make sure it is running.
@@ -264,7 +312,7 @@ export default function DigitalTwinPage() {
       <div className="h-screen w-screen bg-[#0a0f1a] flex items-center justify-center">
         <div className="w-full max-w-lg p-8">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-4">🌐</div>
+            <GlobeIcon className="mx-auto mb-4 text-emerald-400" size={56} />
             <h1 className="text-3xl font-bold text-white mb-2">Digital Twin</h1>
             <p className="text-gray-400">Connect to a running simulation to view the factory floor</p>
           </div>
@@ -459,7 +507,7 @@ export default function DigitalTwinPage() {
             fallback={
               <div className="flex items-center justify-center h-full bg-[#0a0f1a]">
                 <div className="text-center">
-                  <div className="text-5xl mb-4 animate-pulse">🌐</div>
+                  <GlobeIcon className="mx-auto mb-4 animate-pulse text-emerald-400" size={56} />
                   <p className="text-gray-400 text-lg">Loading 3D environment...</p>
                 </div>
               </div>

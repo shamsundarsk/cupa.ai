@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { MachineConfig, TelemetryData } from '@/types'
+import { Globe } from '@/components/ui/icons'
 
 const TwinCanvas = dynamic(() => import('@/components/twin/TwinCanvas3D'), { ssr: false })
 
@@ -160,7 +161,7 @@ export default function DigitalTwinPage() {
     return (
       <div className="h-screen w-screen bg-[#0a0f1a] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl mb-4 animate-pulse">🌐</div>
+          <Globe size={56} className="mx-auto mb-4 animate-pulse text-emerald-400" />
           <p className="text-gray-400 text-lg">Loading Digital Twin...</p>
         </div>
       </div>
@@ -282,7 +283,7 @@ export default function DigitalTwinPage() {
             fallback={
               <div className="flex items-center justify-center h-full bg-[#0a0f1a]">
                 <div className="text-center">
-                  <div className="text-5xl mb-4 animate-pulse">🌐</div>
+                  <Globe size={56} className="mx-auto mb-4 animate-pulse text-emerald-400" />
                   <p className="text-gray-400 text-lg">Loading 3D environment...</p>
                 </div>
               </div>

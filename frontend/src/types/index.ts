@@ -1,6 +1,10 @@
-export type Industry = 'battery_recycling' | 'apparel_textile'
+// Industries can now be either built-in or AI-generated.
+// Keeping known IDs available for autocompletion while allowing arbitrary strings.
+export type BuiltInIndustry = 'battery_recycling' | 'apparel_textile'
+export type Industry = BuiltInIndustry | (string & {})
 
-export type MachineType =
+// Same approach for machine types — built-ins still autocomplete, AI types are accepted.
+export type BuiltInMachineType =
   // Battery Recycling
   | 'battery_intake_conveyor'
   | 'battery_sorting_machine'
@@ -24,6 +28,8 @@ export type MachineType =
   | 'packaging_unit'
   | 'quality_inspection'
 
+export type MachineType = BuiltInMachineType | (string & {})
+
 export interface MachineDefinition {
   type: MachineType
   name: string
@@ -31,7 +37,12 @@ export interface MachineDefinition {
   category: string
   parameters: MachineParameter[]
   outputs: string[]
+  /** Lucide icon name. Falls back to a default when unknown. */
   icon: string
+  /** True when produced by the AI industry generator. */
+  aiGenerated?: boolean
+  /** Short description shown in pickers. */
+  description?: string
 }
 
 export interface MachineParameter {
@@ -120,4 +131,20 @@ export interface AIRecommendation {
   machineId: string
   estimatedImpact: string
   timestamp: number
+}
+
+/**
+ * A custom industry created by the generative AI flow.
+ * Gets persisted in the store and merged with built-in industries.
+ */
+export interface CustomIndustry {
+  id: string
+  name: string
+  description: string
+  features: string[]
+  /** Free-form requirements the expert provided when generating. */
+  requirements?: string
+  machines: MachineDefinition[]
+  aiGenerated: true
+  createdAt: number
 }

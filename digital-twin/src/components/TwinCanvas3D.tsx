@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef, useMemo, useState, useCallback } from 'react'
+import { useMemo, useRef, useCallback, useState } from 'react'
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber'
-import { OrbitControls, Grid, Text } from '@react-three/drei'
+import { ContactShadows, Environment, Grid, Html, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
+import { MachineBase, MachineMesh, meshHeight, pickMeshVariant } from './machineMeshes'
 
 interface MachineConfig {
   id: string
@@ -31,113 +32,153 @@ interface TelemetryData {
   vibration: number
 }
 
-interface TwinCanvas3DProps {
+interface Props {
   machines: MachineConfig[]
   telemetryData: Record<string, TelemetryData>
   activeFlowIndex: number
   onMachineHover: (machineId: string | null) => void
 }
 
-export default function TwinCanvas3D({ machines, telemetryData, activeFlowIndex, onMachineHover }: TwinCanvas3DProps) {
+const SPACING = 6.5
+
+export default function TwinCanvas3D({ machines, telemetryData, activeFlowIndex, onMachineHover }: Props) {
+  const totalWidth = Math.max(machines.length, 1) * SPACING
+  const camDistance = Math.min(60, Math.max(16, totalWidth * 0.55))
+
   return (
     <Canvas
-      camera={{ position: [18, 14, 18], fov: 45 }}
-      style={{ background: '#0a0f1a' }}
+      shadows
+      dpr={[1, 2]}
+      camera={{ position: [camDistance * 0.7, camDistance * 0.55, camDistance * 0.7], fov: 45 }}
+      style={{ background: 'linear-gradient(180deg, #1a2435 0%, #0d1422 100%)' }}
       onPointerMissed={() => onMachineHover(null)}
     >
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 20, 10]} intensity={0.6} castShadow />
-      <directionalLight position={[-5, 10, -5]} intensity={0.2} color="#4ade80" />
-
-      <FactoryFloor />
-
-      {machines.map((machine, index) => (
-        <MachineModel
-          key={machine.id}
-          machine={machine}
-          telemetry={telemetryData[machine.id]}
-          position={[index * 5 - (machines.length * 2.5) + 2.5, 0, 0]}
-          index={index}
-          isActive={index === activeFlowIndex}
-          onHover={onMachineHover}
-        />
-      ))}
-
-      {/* Conveyor belts */}
-      {machines.length > 1 && machines.slice(0, -1).map((_, index) => (
-        <ConveyorBelt
-          key={`conv_${index}`}
-          startX={index * 5 - (machines.length * 2.5) + 2.5 + 2}
-          endX={(index + 1) * 5 - (machines.length * 2.5) + 2.5 - 2}
-          isActive={index === activeFlowIndex - 1 || (activeFlowIndex === 0 && index === machines.length - 2)}
-        />
-      ))}
-
-      {/* Scrap flow arrows */}
-      <ScrapFlowArrows
-        machines={machines}
-        activeFlowIndex={activeFlowIndex}
+      <ambientLight intensity={0.45} />
+      <hemisphereLight args={['#cbd5e1', '#1f2937', 0.55]} />
+      <directionalLight
+        castShadow
+        position={[14, 22, 10]}
+        intensity={1.2}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={1}
+        shadow-camera-far={80}
+        shadow-camera-left={-30}
+        shadow-camera-right={30}
+        shadow-camera-top={30}
+        shadow-camera-bottom={-30}
       />
+      <directionalLight position={[-12, 10, -8]} intensity={0.4} color="#a5b4fc" />
+      <directionalLight position={[0, 6, -16]} intensity={0.5} color="#22d3ee" />
+
+      <Environment preset="warehouse" />
+
+      <FactoryFloor width={Math.max(40, totalWidth + 16)} depth={Math.max(20, totalWidth * 0.45 + 12)} />
+
+      {machines.map((machine, index) => {
+        const x = index * SPACING - ((machines.length - 1) * SPACING) / 2
+        return (
+          <MachineStation
+            key={machine.id}
+            machine={machine}
+            telemetry={telemetryData[machine.id]}
+            position={[x, 0, 0]}
+            isActive={index === activeFlowIndex}
+            onHover={onMachineHover}
+          />
+        )
+      })}
+
+      {machines.length > 1 &&
+        machines.slice(0, -1).map((m, idx) => {
+          const x1 = idx * SPACING - ((machines.length - 1) * SPACING) / 2 + 1.5
+          const x2 = (idx + 1) * SPACING - ((machines.length - 1) * SPACING) / 2 - 1.5
+          const isLive =
+            idx === activeFlowIndex - 1 ||
+            (activeFlowIndex === 0 && idx === machines.length - 2)
+          return <ConveyorLink key={`link_${m.id}`} from={[x1, 0, 0]} to={[x2, 0, 0]} active={isLive} />
+        })}
+
+      <ContactShadows
+        position={[0, 0.01, 0]}
+        opacity={0.55}
+        scale={Math.max(40, totalWidth + 20)}
+        blur={2.5}
+        far={20}
+      />
+
+      <Grid
+        args={[60, 30]}
+        position={[0, 0.005, 0]}
+        cellSize={1}
+        cellThickness={0.4}
+        cellColor="#27324a"
+        sectionSize={5}
+        sectionThickness={1}
+        sectionColor="#3c4a6b"
+        fadeDistance={Math.max(40, totalWidth + 20)}
+        fadeStrength={1.2}
+        infiniteGrid
+      />
+
+      <fog attach="fog" args={['#0d1422', 35, 120]} />
 
       <OrbitControls
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={0.06}
         minDistance={8}
-        maxDistance={45}
-        maxPolarAngle={Math.PI / 2.2}
+        maxDistance={90}
+        maxPolarAngle={Math.PI / 2.05}
+        target={[0, 1.2, 0]}
       />
-      <Grid
-        args={[60, 60]}
-        position={[0, -0.01, 0]}
-        cellSize={1}
-        cellThickness={0.3}
-        cellColor="#1a2332"
-        sectionSize={5}
-        sectionThickness={0.8}
-        sectionColor="#2a3a4a"
-        fadeDistance={50}
-      />
-      <fog attach="fog" args={['#0a0f1a', 25, 60]} />
     </Canvas>
   )
 }
 
-function FactoryFloor() {
+function FactoryFloor({ width, depth }: { width: number; depth: number }) {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-      <planeGeometry args={[70, 35]} />
-      <meshStandardMaterial color="#0c1220" roughness={0.95} />
-    </mesh>
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+        <planeGeometry args={[width, depth]} />
+        <meshStandardMaterial color="#1c2434" roughness={0.95} metalness={0.05} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 2.6]}>
+        <planeGeometry args={[width, 0.16]} />
+        <meshStandardMaterial color="#f5b500" emissive="#f5b500" emissiveIntensity={0.05} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -2.6]}>
+        <planeGeometry args={[width, 0.16]} />
+        <meshStandardMaterial color="#f5b500" emissive="#f5b500" emissiveIntensity={0.05} />
+      </mesh>
+    </group>
   )
 }
 
-function MachineModel({ machine, telemetry, position, index, isActive, onHover }: {
+function MachineStation({
+  machine,
+  telemetry,
+  position,
+  isActive,
+  onHover,
+}: {
   machine: MachineConfig
   telemetry?: TelemetryData
   position: [number, number, number]
-  index: number
   isActive: boolean
   onHover: (id: string | null) => void
 }) {
-  const groupRef = useRef<THREE.Group>(null)
-  const glowRef = useRef<THREE.PointLight>(null)
+  const variant = useMemo(() => pickMeshVariant(machine.type), [machine.type])
+  const height = meshHeight(variant)
   const [hovered, setHovered] = useState(false)
 
-  const state = telemetry?.machineState || 'idle'
+  const state = telemetry?.machineState ?? 'idle'
+  const active = isActive || state === 'running' || state === 'warning'
 
-  const statusColor = useMemo(() => {
-    if (state === 'critical') return '#ef4444'
-    if (state === 'warning') return '#f59e0b'
-    if (state === 'running') return '#4ade80'
-    return '#64748b'
-  }, [state])
-
-  useFrame((_, delta) => {
-    if (glowRef.current) {
-      const targetIntensity = isActive ? 3.0 : (hovered ? 1.5 : 0.6)
-      glowRef.current.intensity += (targetIntensity - glowRef.current.intensity) * delta * 4
-    }
-  })
+  const statusColor =
+    state === 'critical' ? '#ef4444' :
+    state === 'warning' ? '#f59e0b' :
+    state === 'running' ? '#22c55e' :
+    '#94a3b8'
 
   const handlePointerOver = useCallback((e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
@@ -152,79 +193,77 @@ function MachineModel({ machine, telemetry, position, index, isActive, onHover }
     document.body.style.cursor = 'default'
   }, [onHover])
 
-  const baseEmissive = isActive ? 0.35 : 0.08
-  const machineColor = '#2a3a4a'
-
   return (
-    <group position={position} ref={groupRef}>
-      <MachineShape
-        type={machine.type}
-        machineColor={machineColor}
-        emissiveColor={isActive ? '#4ade80' : statusColor}
-        emissiveIntensity={hovered ? 0.3 : baseEmissive}
-        isActive={isActive}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      />
+    <group
+      position={position}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
+    >
+      <MachineBase active={active || hovered} />
+      <MachineMesh variant={variant} active={active} />
 
-      {/* Status light */}
-      <mesh position={[0, getHeight(machine.type) + 0.4, 0]}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshStandardMaterial
-          color={statusColor}
-          emissive={statusColor}
-          emissiveIntensity={isActive ? 3 : 1}
-        />
-      </mesh>
+      <Beacon position={[0, height + 0.5, 0]} color={statusColor} pulsing={state === 'critical' || isActive} />
 
-      {/* Glow */}
       <pointLight
-        ref={glowRef}
-        position={[0, getHeight(machine.type) / 2, 0]}
-        color={isActive ? '#4ade80' : statusColor}
-        intensity={0.6}
+        position={[0, height * 0.55, 0]}
+        color={isActive ? '#22c55e' : statusColor}
+        intensity={isActive ? 2 : active ? 1.4 : 0.6}
         distance={6}
       />
 
       {isActive && <ActiveRing />}
 
-      {/* Label */}
-      <Text
-        position={[0, -0.6, 1.8]}
-        fontSize={0.28}
-        color={isActive ? '#4ade80' : '#94a3b8'}
-        anchorX="center"
-        anchorY="middle"
-        font={undefined}
-      >
-        {machine.name}
-      </Text>
-
-      {/* Base */}
-      <mesh position={[0, 0.05, 0]} receiveShadow>
-        <cylinderGeometry args={[1.6, 1.8, 0.1, 6]} />
-        <meshStandardMaterial
-          color={isActive ? '#1a3a2a' : '#1e293b'}
-          metalness={0.5}
-          roughness={0.5}
-          emissive={isActive ? '#4ade80' : '#000000'}
-          emissiveIntensity={isActive ? 0.15 : 0}
-        />
-      </mesh>
+      <Html position={[0, height + 1.1, 0]} center distanceFactor={10} occlude="blending">
+        <div className="px-2.5 py-1 rounded-md bg-black/70 text-white text-[11px] font-mono whitespace-nowrap border border-white/10 backdrop-blur-sm">
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
+            style={{ background: statusColor }}
+          />
+          {machine.name}
+          {telemetry && (
+            <span className="text-emerald-300/90 ml-2">
+              {Math.round(telemetry.efficiencyScore)}%
+            </span>
+          )}
+        </div>
+      </Html>
     </group>
+  )
+}
+
+function Beacon({
+  position,
+  color,
+  pulsing,
+}: {
+  position: [number, number, number]
+  color: string
+  pulsing: boolean
+}) {
+  const ref = useRef<THREE.Mesh>(null)
+  useFrame(() => {
+    if (!ref.current) return
+    const mat = ref.current.material as THREE.MeshStandardMaterial
+    const base = pulsing ? 1 + Math.sin(Date.now() * 0.008) * 0.6 : 0.6
+    mat.emissiveIntensity = base + 0.4
+  })
+  return (
+    <mesh ref={ref} position={position}>
+      <sphereGeometry args={[0.16, 24, 24]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} toneMapped={false} />
+    </mesh>
   )
 }
 
 function ActiveRing() {
   const ref = useRef<THREE.Mesh>(null)
   useFrame(() => {
-    if (ref.current) {
-      const mat = ref.current.material as THREE.MeshStandardMaterial
-      mat.opacity = 0.4 + Math.sin(Date.now() * 0.005) * 0.2
-    }
+    if (!ref.current) return
+    const mat = ref.current.material as THREE.MeshStandardMaterial
+    mat.opacity = 0.4 + Math.sin(Date.now() * 0.005) * 0.2
   })
   return (
-    <mesh ref={ref} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <mesh ref={ref} position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       <ringGeometry args={[1.7, 2.0, 32]} />
       <meshStandardMaterial
         color="#4ade80"
@@ -237,291 +276,65 @@ function ActiveRing() {
   )
 }
 
-function getHeight(type: string): number {
-  if (type.includes('tank') || type.includes('storage')) return 2.8
-  if (type.includes('boiler') || type.includes('drying')) return 2.5
-  if (type.includes('conveyor')) return 1.0
-  if (type.includes('shredder') || type.includes('press')) return 2.0
-  return 1.8
-}
-
-function MachineShape({ type, machineColor, emissiveColor, emissiveIntensity, isActive, onPointerOver, onPointerOut }: {
-  type: string
-  machineColor: string
-  emissiveColor: string
-  emissiveIntensity: number
-  isActive: boolean
-  onPointerOver: (e: ThreeEvent<PointerEvent>) => void
-  onPointerOut: () => void
+function ConveyorLink({
+  from,
+  to,
+  active,
+}: {
+  from: [number, number, number]
+  to: [number, number, number]
+  active: boolean
 }) {
-  if (type.includes('conveyor')) {
-    return (
-      <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-        <mesh position={[0, 0.6, 0]} castShadow>
-          <boxGeometry args={[3, 0.6, 1.4]} />
-          <meshStandardMaterial color={machineColor} metalness={0.7} roughness={0.3} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-        </mesh>
-        {[-1, 0, 1].map(x => (
-          <mesh key={x} position={[x, 0.9, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.12, 0.12, 1.3, 8]} />
-            <meshStandardMaterial color="#5a6a7a" metalness={0.9} roughness={0.1} />
-          </mesh>
-        ))}
-        <mesh position={[0, 0.6, 0.75]}>
-          <boxGeometry args={[3, 0.5, 0.05]} />
-          <meshStandardMaterial color="#3a4a5a" metalness={0.6} roughness={0.4} />
-        </mesh>
-        <mesh position={[0, 0.6, -0.75]}>
-          <boxGeometry args={[3, 0.5, 0.05]} />
-          <meshStandardMaterial color="#3a4a5a" metalness={0.6} roughness={0.4} />
-        </mesh>
-      </group>
-    )
-  }
-
-  if (type.includes('sorting') || type.includes('inspection')) {
-    return (
-      <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-        <mesh position={[0, 1, 0]} castShadow>
-          <boxGeometry args={[2.2, 2, 1.6]} />
-          <meshStandardMaterial color={machineColor} metalness={0.7} roughness={0.3} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-        </mesh>
-        <mesh position={[-0.6, 0.3, 0.9]} rotation={[0.3, 0, 0]}>
-          <boxGeometry args={[0.4, 0.1, 0.8]} />
-          <meshStandardMaterial color="#5a6a7a" metalness={0.8} roughness={0.2} />
-        </mesh>
-        <mesh position={[0.6, 0.3, 0.9]} rotation={[0.3, 0, 0]}>
-          <boxGeometry args={[0.4, 0.1, 0.8]} />
-          <meshStandardMaterial color="#5a6a7a" metalness={0.8} roughness={0.2} />
-        </mesh>
-        <mesh position={[0, 2.1, 0]}>
-          <boxGeometry args={[1.8, 0.15, 1.2]} />
-          <meshStandardMaterial color="#3a4a5a" metalness={0.6} roughness={0.4} emissive={emissiveColor} emissiveIntensity={isActive ? 0.5 : 0.1} />
-        </mesh>
-      </group>
-    )
-  }
-
-  if (type.includes('shredder') || type.includes('cutting')) {
-    return (
-      <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-        <mesh position={[0, 1.2, 0]} castShadow>
-          <cylinderGeometry args={[1.1, 1.3, 2.2, 8]} />
-          <meshStandardMaterial color={machineColor} metalness={0.8} roughness={0.2} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-        </mesh>
-        <mesh position={[0, 2.5, 0]}>
-          <cylinderGeometry args={[1.2, 0.8, 0.6, 8]} />
-          <meshStandardMaterial color="#3a4a5a" metalness={0.6} roughness={0.4} />
-        </mesh>
-        <mesh position={[0, 1.2, 0]}>
-          <torusGeometry args={[1.15, 0.08, 8, 16]} />
-          <meshStandardMaterial color="#7a8a9a" metalness={0.9} roughness={0.1} />
-        </mesh>
-        <mesh position={[0, 0.6, 0]}>
-          <torusGeometry args={[1.2, 0.06, 8, 16]} />
-          <meshStandardMaterial color="#6a7a8a" metalness={0.9} roughness={0.1} />
-        </mesh>
-      </group>
-    )
-  }
-
-  if (type.includes('separator') || type.includes('magnetic') || type.includes('sewing')) {
-    return (
-      <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-        <mesh position={[0, 1, 0]} castShadow>
-          <cylinderGeometry args={[1.4, 1.4, 1.8, 16]} />
-          <meshStandardMaterial color={machineColor} metalness={0.7} roughness={0.3} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-        </mesh>
-        <mesh position={[0, 1, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[1.5, 0.1, 8, 24]} />
-          <meshStandardMaterial color="#6366f1" emissive="#6366f1" emissiveIntensity={isActive ? 1.0 : 0.3} metalness={0.9} roughness={0.1} />
-        </mesh>
-        <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[1.3, 0.08, 8, 24]} />
-          <meshStandardMaterial color="#818cf8" emissive="#818cf8" emissiveIntensity={isActive ? 0.7 : 0.2} metalness={0.9} roughness={0.1} />
-        </mesh>
-      </group>
-    )
-  }
-
-  if (type.includes('tank') || type.includes('chemical') || type.includes('storage') || type.includes('boiler')) {
-    return (
-      <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-        <mesh position={[0, 1.5, 0]} castShadow>
-          <cylinderGeometry args={[1, 1, 3, 16]} />
-          <meshStandardMaterial color={machineColor} metalness={0.6} roughness={0.4} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-        </mesh>
-        <mesh position={[0, 3.1, 0]}>
-          <sphereGeometry args={[1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#3a4a5a" metalness={0.7} roughness={0.3} />
-        </mesh>
-        <mesh position={[1.1, 1, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.12, 0.12, 0.8, 8]} />
-          <meshStandardMaterial color="#5a6a7a" metalness={0.9} roughness={0.1} />
-        </mesh>
-        <mesh position={[-1.1, 2, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.12, 0.12, 0.8, 8]} />
-          <meshStandardMaterial color="#5a6a7a" metalness={0.9} roughness={0.1} />
-        </mesh>
-        <mesh position={[0, 1.5, 1.05]}>
-          <boxGeometry args={[0.15, 2, 0.05]} />
-          <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={isActive ? 1.2 : 0.4} transparent opacity={0.7} />
-        </mesh>
-      </group>
-    )
-  }
-
-  if (type.includes('drying') || type.includes('dry') || type.includes('washing') || type.includes('dyeing')) {
-    return (
-      <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-        <mesh position={[0, 1.3, 0]} castShadow>
-          <boxGeometry args={[2.4, 2.4, 1.8]} />
-          <meshStandardMaterial color={machineColor} metalness={0.7} roughness={0.3} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-        </mesh>
-        {[0.4, 0.8, 1.2, 1.6, 2.0].map(y => (
-          <mesh key={y} position={[0, y, 0.95]}>
-            <boxGeometry args={[1.8, 0.06, 0.05]} />
-            <meshStandardMaterial color="#5a6a7a" metalness={0.8} roughness={0.2} />
-          </mesh>
-        ))}
-        <mesh position={[0.8, 2.8, 0]}>
-          <cylinderGeometry args={[0.2, 0.2, 0.6, 8]} />
-          <meshStandardMaterial color="#5a6a7a" metalness={0.8} roughness={0.2} />
-        </mesh>
-      </group>
-    )
-  }
-
-  if (type.includes('filter') || type.includes('press') || type.includes('packaging') || type.includes('heat')) {
-    return (
-      <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-        <mesh position={[0, 1.1, 0]} castShadow>
-          <boxGeometry args={[2, 2.2, 1.6]} />
-          <meshStandardMaterial color={machineColor} metalness={0.7} roughness={0.3} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-        </mesh>
-        {/* Hydraulic arms */}
-        <mesh position={[-0.8, 2.4, 0]}>
-          <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-          <meshStandardMaterial color="#5a6a7a" metalness={0.9} roughness={0.1} />
-        </mesh>
-        <mesh position={[0.8, 2.4, 0]}>
-          <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-          <meshStandardMaterial color="#5a6a7a" metalness={0.9} roughness={0.1} />
-        </mesh>
-        {/* Top plate */}
-        <mesh position={[0, 2.3, 0]}>
-          <boxGeometry args={[2.2, 0.15, 1.8]} />
-          <meshStandardMaterial color="#3a4a5a" metalness={0.6} roughness={0.4} />
-        </mesh>
-      </group>
-    )
-  }
-
-  // Default generic machine
-  return (
-    <group onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-      <mesh position={[0, 1, 0]} castShadow>
-        <boxGeometry args={[2, 2, 1.5]} />
-        <meshStandardMaterial color={machineColor} metalness={0.7} roughness={0.3} emissive={emissiveColor} emissiveIntensity={emissiveIntensity} />
-      </mesh>
-    </group>
-  )
-}
-
-// Scrap flow arrows between active machine and next
-function ScrapFlowArrows({ machines, activeFlowIndex }: { machines: MachineConfig[]; activeFlowIndex: number }) {
-  if (activeFlowIndex >= machines.length - 1) return null
-
-  const startX = activeFlowIndex * 5 - (machines.length * 2.5) + 2.5 + 2
-  const endX = (activeFlowIndex + 1) * 5 - (machines.length * 2.5) + 2.5 - 2
+  const length = Math.abs(to[0] - from[0])
+  const midX = (from[0] + to[0]) / 2
 
   return (
     <group>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <FlowArrow key={`${activeFlowIndex}-${i}`} startX={startX} endX={endX} delay={i * 0.2} />
+      {[-0.45, 0.45].map((z, i) => (
+        <mesh key={i} position={[midX, 0.55, z]}>
+          <boxGeometry args={[length, 0.06, 0.06]} />
+          <meshStandardMaterial color="#475569" metalness={0.7} roughness={0.4} />
+        </mesh>
       ))}
+      <mesh position={[midX, 0.55, 0]}>
+        <boxGeometry args={[length, 0.04, 0.85]} />
+        <meshStandardMaterial
+          color={active ? '#1f2937' : '#0f172a'}
+          emissive={active ? '#22c55e' : '#000000'}
+          emissiveIntensity={active ? 0.05 : 0}
+          metalness={0.1}
+          roughness={0.95}
+        />
+      </mesh>
+      {[from[0] + 0.5, midX, to[0] - 0.5].map((x, i) => (
+        <mesh key={i} position={[x, 0.3, 0]}>
+          <boxGeometry args={[0.06, 0.6, 1]} />
+          <meshStandardMaterial color="#334155" metalness={0.6} roughness={0.5} />
+        </mesh>
+      ))}
+      {active && <FlowParticles startX={from[0]} endX={to[0]} />}
     </group>
   )
 }
 
-function FlowArrow({ startX, endX, delay }: { startX: number; endX: number; delay: number }) {
-  const ref = useRef<THREE.Group>(null)
-
+function FlowParticles({ startX, endX }: { startX: number; endX: number }) {
+  const groupRef = useRef<THREE.Group>(null)
+  const count = 6
   useFrame(() => {
-    if (!ref.current) return
-    const time = Date.now() * 0.001 * 1.5
-    const progress = ((time + delay) % 1)
-    const x = startX + (endX - startX) * progress
-    ref.current.position.set(x, 0.6, 0)
-    ref.current.scale.setScalar(0.8 + Math.sin(progress * Math.PI) * 0.4)
+    if (!groupRef.current) return
+    const t = Date.now() * 0.001
+    groupRef.current.children.forEach((child, i) => {
+      const offset = i / count
+      const progress = ((t * 0.4 + offset) % 1)
+      child.position.x = startX + (endX - startX) * progress
+    })
   })
-
   return (
-    <group ref={ref} rotation={[0, -Math.PI / 2, 0]}>
-      <mesh rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.12, 0.4, 4]} />
-        <meshStandardMaterial
-          color="#f59e0b"
-          emissive="#f59e0b"
-          emissiveIntensity={1.5}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-      <mesh position={[0, 0, 0.25]} rotation={[0, 0, -Math.PI / 2]}>
-        <cylinderGeometry args={[0.04, 0.08, 0.3, 4]} />
-        <meshStandardMaterial
-          color="#fbbf24"
-          emissive="#fbbf24"
-          emissiveIntensity={1}
-          transparent
-          opacity={0.6}
-        />
-      </mesh>
-    </group>
-  )
-}
-
-function ConveyorBelt({ startX, endX, isActive }: { startX: number; endX: number; isActive: boolean }) {
-  const length = endX - startX
-  const midX = (startX + endX) / 2
-
-  return (
-    <group>
-      <mesh position={[midX, 0.4, 0]}>
-        <boxGeometry args={[length, 0.06, 0.5]} />
-        <meshStandardMaterial
-          color={isActive ? '#2a4a3a' : '#2d3748'}
-          metalness={0.4}
-          roughness={0.6}
-          emissive={isActive ? '#4ade80' : '#1a2a3a'}
-          emissiveIntensity={isActive ? 0.2 : 0.05}
-        />
-      </mesh>
-      <mesh position={[midX, 0.43, 0.28]}>
-        <boxGeometry args={[length, 0.03, 0.03]} />
-        <meshStandardMaterial
-          color="#5a6a7a"
-          emissive={isActive ? '#4ade80' : '#2a3a4a'}
-          emissiveIntensity={isActive ? 0.4 : 0.1}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-      <mesh position={[midX, 0.43, -0.28]}>
-        <boxGeometry args={[length, 0.03, 0.03]} />
-        <meshStandardMaterial
-          color="#5a6a7a"
-          emissive={isActive ? '#4ade80' : '#2a3a4a'}
-          emissiveIntensity={isActive ? 0.4 : 0.1}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-      {[startX + 0.3, midX, endX - 0.3].map((x, i) => (
-        <mesh key={i} position={[x, 0.2, 0]}>
-          <boxGeometry args={[0.06, 0.4, 0.5]} />
-          <meshStandardMaterial color="#3a4a5a" metalness={0.6} roughness={0.4} />
+    <group ref={groupRef}>
+      {Array.from({ length: count }).map((_, i) => (
+        <mesh key={i} position={[0, 0.7, 0]}>
+          <boxGeometry args={[0.18, 0.18, 0.18]} />
+          <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.7} />
         </mesh>
       ))}
     </group>

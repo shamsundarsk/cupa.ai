@@ -1,12 +1,19 @@
 import { MachineDefinition } from '@/types'
 
+/**
+ * Built-in machine catalog.
+ *
+ * `icon` is now a hint string passed through `resolveMachineIcon` so it works
+ * uniformly for built-ins and AI-generated machines (no more emojis).
+ */
+
 export const BATTERY_RECYCLING_MACHINES: MachineDefinition[] = [
   {
     type: 'battery_intake_conveyor',
     name: 'Battery Intake Conveyor',
     industry: 'battery_recycling',
     category: 'Intake',
-    icon: '🔋',
+    icon: 'intake',
     parameters: [
       { key: 'intake_rate', label: 'Intake Rate', unit: 'kg/h', min: 100, max: 5000, default: 1000, editable: true },
       { key: 'conveyor_speed', label: 'Conveyor Speed', unit: 'm/min', min: 1, max: 30, default: 10, editable: true },
@@ -23,7 +30,7 @@ export const BATTERY_RECYCLING_MACHINES: MachineDefinition[] = [
     name: 'Battery Shredder',
     industry: 'battery_recycling',
     category: 'Processing',
-    icon: '⚙️',
+    icon: 'shredder',
     parameters: [
       { key: 'rpm', label: 'RPM', unit: 'rpm', min: 1000, max: 10000, default: 5000, editable: true },
       { key: 'motor_temperature', label: 'Motor Temperature', unit: '°C', min: 20, max: 150, default: 65, editable: false },
@@ -41,7 +48,7 @@ export const BATTERY_RECYCLING_MACHINES: MachineDefinition[] = [
     name: 'Magnetic Separator',
     industry: 'battery_recycling',
     category: 'Separation',
-    icon: '🧲',
+    icon: 'magnetic',
     parameters: [
       { key: 'magnetic_field_strength', label: 'Field Strength', unit: 'T', min: 0.1, max: 2.0, default: 0.8, editable: true },
       { key: 'belt_speed', label: 'Belt Speed', unit: 'm/min', min: 1, max: 20, default: 8, editable: true },
@@ -57,7 +64,7 @@ export const BATTERY_RECYCLING_MACHINES: MachineDefinition[] = [
     name: 'Heated Chemical Tank',
     industry: 'battery_recycling',
     category: 'Chemical Processing',
-    icon: '🧪',
+    icon: 'chemical',
     parameters: [
       { key: 'tank_temperature', label: 'Tank Temperature', unit: '°C', min: 20, max: 200, default: 85, editable: true },
       { key: 'chemical_level', label: 'Chemical Level', unit: '%', min: 10, max: 100, default: 75, editable: false },
@@ -74,7 +81,7 @@ export const BATTERY_RECYCLING_MACHINES: MachineDefinition[] = [
     name: 'Filter Press System',
     industry: 'battery_recycling',
     category: 'Filtration',
-    icon: '🔧',
+    icon: 'press',
     parameters: [
       { key: 'pressure_level', label: 'Pressure Level', unit: 'bar', min: 1, max: 20, default: 8, editable: true },
       { key: 'slurry_input', label: 'Slurry Input', unit: 'L/h', min: 50, max: 2000, default: 500, editable: true },
@@ -90,7 +97,7 @@ export const BATTERY_RECYCLING_MACHINES: MachineDefinition[] = [
     name: 'Drying Unit',
     industry: 'battery_recycling',
     category: 'Drying',
-    icon: '🌡️',
+    icon: 'drying',
     parameters: [
       { key: 'drying_temperature', label: 'Drying Temperature', unit: '°C', min: 50, max: 300, default: 120, editable: true },
       { key: 'airflow_rate', label: 'Airflow Rate', unit: 'm³/h', min: 100, max: 5000, default: 1500, editable: true },
@@ -100,6 +107,37 @@ export const BATTERY_RECYCLING_MACHINES: MachineDefinition[] = [
     ],
     outputs: ['Dried material output', 'Energy efficiency', 'Moisture level', 'Temperature stability'],
   },
+  {
+    type: 'hazard_containment',
+    name: 'Hazard Containment',
+    industry: 'battery_recycling',
+    category: 'Safety',
+    icon: 'hazard',
+    parameters: [
+      { key: 'containment_capacity', label: 'Containment Capacity', unit: 'units', min: 5, max: 200, default: 50, editable: true },
+      { key: 'cooling_power', label: 'Cooling Power', unit: 'kW', min: 5, max: 80, default: 30, editable: true },
+      { key: 'inert_gas_pressure', label: 'Inert Gas Pressure', unit: 'bar', min: 0.5, max: 5, default: 1.5, editable: true },
+      { key: 'sensor_temperature', label: 'Sensor Temperature', unit: '°C', min: 5, max: 90, default: 25, editable: false },
+      { key: 'ventilation_rate', label: 'Ventilation Rate', unit: 'm³/h', min: 100, max: 4000, default: 1200, editable: true },
+      { key: 'response_time', label: 'Response Time', unit: 's', min: 1, max: 30, default: 4, editable: false },
+    ],
+    outputs: ['Hazardous items isolated', 'Containment integrity', 'Gas detection', 'Cooling efficiency'],
+  },
+  {
+    type: 'battery_sorting_machine',
+    name: 'Battery Sorting Machine',
+    industry: 'battery_recycling',
+    category: 'Sorting',
+    icon: 'sorting',
+    parameters: [
+      { key: 'sorting_speed', label: 'Sorting Speed', unit: 'units/min', min: 30, max: 1500, default: 600, editable: true },
+      { key: 'detection_accuracy', label: 'Detection Accuracy', unit: '%', min: 80, max: 99.5, default: 96, editable: false },
+      { key: 'vision_system_load', label: 'Vision System Load', unit: '%', min: 0, max: 100, default: 45, editable: false },
+      { key: 'reject_rate', label: 'Reject Rate', unit: '%', min: 0, max: 25, default: 4, editable: false },
+      { key: 'belt_speed', label: 'Belt Speed', unit: 'm/min', min: 1, max: 25, default: 8, editable: true },
+    ],
+    outputs: ['Sorted by chemistry', 'Reject pile', 'Detection accuracy', 'Throughput'],
+  },
 ]
 
 export const TEXTILE_MACHINES: MachineDefinition[] = [
@@ -108,7 +146,7 @@ export const TEXTILE_MACHINES: MachineDefinition[] = [
     name: 'Fabric Cutting Machine',
     industry: 'apparel_textile',
     category: 'Cutting',
-    icon: '✂️',
+    icon: 'cutting',
     parameters: [
       { key: 'cutting_speed', label: 'Cutting Speed', unit: 'm/min', min: 1, max: 50, default: 15, editable: true },
       { key: 'blade_sharpness', label: 'Blade Sharpness', unit: '%', min: 10, max: 100, default: 90, editable: false },
@@ -124,7 +162,7 @@ export const TEXTILE_MACHINES: MachineDefinition[] = [
     name: 'Textile Dyeing Machine',
     industry: 'apparel_textile',
     category: 'Dyeing',
-    icon: '🎨',
+    icon: 'dyeing',
     parameters: [
       { key: 'dye_temperature', label: 'Dye Temperature', unit: '°C', min: 30, max: 130, default: 80, editable: true },
       { key: 'chemical_concentration', label: 'Chemical Concentration', unit: '%', min: 1, max: 30, default: 10, editable: true },
@@ -140,7 +178,7 @@ export const TEXTILE_MACHINES: MachineDefinition[] = [
     name: 'Steam Boiler',
     industry: 'apparel_textile',
     category: 'Utilities',
-    icon: '♨️',
+    icon: 'boiler',
     parameters: [
       { key: 'steam_pressure', label: 'Steam Pressure', unit: 'bar', min: 1, max: 15, default: 6, editable: true },
       { key: 'boiler_temperature', label: 'Boiler Temperature', unit: '°C', min: 100, max: 250, default: 160, editable: false },
@@ -156,7 +194,7 @@ export const TEXTILE_MACHINES: MachineDefinition[] = [
     name: 'Industrial Sewing Machine',
     industry: 'apparel_textile',
     category: 'Assembly',
-    icon: '🧵',
+    icon: 'sewing',
     parameters: [
       { key: 'stitch_speed', label: 'Stitch Speed', unit: 'spm', min: 500, max: 8000, default: 3000, editable: true },
       { key: 'thread_tension', label: 'Thread Tension', unit: 'N', min: 0.5, max: 10, default: 3, editable: true },
@@ -171,7 +209,7 @@ export const TEXTILE_MACHINES: MachineDefinition[] = [
     name: 'Heat Press Machine',
     industry: 'apparel_textile',
     category: 'Finishing',
-    icon: '🔥',
+    icon: 'heat',
     parameters: [
       { key: 'press_temperature', label: 'Press Temperature', unit: '°C', min: 100, max: 250, default: 180, editable: true },
       { key: 'press_pressure', label: 'Press Pressure', unit: 'bar', min: 1, max: 10, default: 4, editable: true },
@@ -186,7 +224,7 @@ export const TEXTILE_MACHINES: MachineDefinition[] = [
     name: 'Washing Unit',
     industry: 'apparel_textile',
     category: 'Washing',
-    icon: '💧',
+    icon: 'washing',
     parameters: [
       { key: 'water_temperature', label: 'Water Temperature', unit: '°C', min: 20, max: 90, default: 45, editable: true },
       { key: 'drum_speed', label: 'Drum Speed', unit: 'rpm', min: 10, max: 200, default: 60, editable: true },
@@ -195,6 +233,21 @@ export const TEXTILE_MACHINES: MachineDefinition[] = [
       { key: 'cycle_time', label: 'Cycle Time', unit: 'min', min: 10, max: 90, default: 35, editable: true },
     ],
     outputs: ['Wash quality', 'Water efficiency', 'Energy usage', 'Chemical balance'],
+  },
+  {
+    type: 'quality_inspection',
+    name: 'Quality Inspection',
+    industry: 'apparel_textile',
+    category: 'Quality',
+    icon: 'inspection',
+    parameters: [
+      { key: 'inspection_speed', label: 'Inspection Speed', unit: 'units/h', min: 100, max: 5000, default: 1200, editable: true },
+      { key: 'detection_threshold', label: 'Detection Threshold', unit: '%', min: 80, max: 99.5, default: 95, editable: true },
+      { key: 'reject_rate', label: 'Reject Rate', unit: '%', min: 0, max: 30, default: 4, editable: false },
+      { key: 'lighting_intensity', label: 'Lighting Intensity', unit: 'lux', min: 100, max: 5000, default: 1800, editable: true },
+      { key: 'power_consumption', label: 'Power Consumption', unit: 'kW', min: 1, max: 25, default: 6, editable: false },
+    ],
+    outputs: ['Pass rate', 'Defect rate', 'Inspection accuracy'],
   },
 ]
 
@@ -216,3 +269,35 @@ export const MACHINE_CONNECTIONS: Record<string, string[]> = {
   industrial_sewing_machine: ['heat_press_machine'],
   heat_press_machine: ['quality_inspection', 'packaging_unit'],
 }
+
+/** Built-in industry metadata used by the IndustrySelector. */
+export interface BuiltInIndustryMeta {
+  id: string
+  name: string
+  description: string
+  icon: string
+  features: string[]
+  machineCount: number
+  machines: MachineDefinition[]
+}
+
+export const BUILT_IN_INDUSTRIES: BuiltInIndustryMeta[] = [
+  {
+    id: 'battery_recycling',
+    name: 'Battery Recycling',
+    description: 'Full battery recycling plant — from intake to material recovery',
+    icon: 'battery',
+    features: ['Shredding', 'Chemical Processing', 'Magnetic Separation', 'Filtration', 'Drying'],
+    machineCount: BATTERY_RECYCLING_MACHINES.length,
+    machines: BATTERY_RECYCLING_MACHINES,
+  },
+  {
+    id: 'apparel_textile',
+    name: 'Apparel & Textile',
+    description: 'Complete textile manufacturing — cutting, dyeing, sewing, finishing',
+    icon: 'textile',
+    features: ['Cutting', 'Dyeing', 'Sewing', 'Heat Press', 'Steam Processing'],
+    machineCount: TEXTILE_MACHINES.length,
+    machines: TEXTILE_MACHINES,
+  },
+]

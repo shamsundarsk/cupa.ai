@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { Alert, AIRecommendation } from '@/types'
+import { AlertCircle, AlertTriangle, Bot, Info, Lightbulb } from '@/components/ui/icons'
 
 export default function AIAlertsDashboard() {
   const { alerts, dismissAlert, telemetryData, machines } = useStore()
@@ -133,7 +134,7 @@ export default function AIAlertsDashboard() {
       {recommendations.length > 0 && (
         <div className="industrial-card p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <span>🤖</span> AI Recommendations
+            <Bot size={18} className="text-industrial-400" /> AI Recommendations
           </h3>
           <div className="space-y-3">
             {recommendations.slice(0, 6).map((rec) => (
@@ -161,7 +162,9 @@ export default function AIAlertsDashboard() {
                     </div>
                     <h4 className="text-sm font-semibold text-white">{rec.title}</h4>
                     <p className="text-xs text-carbon-400 mt-1">{rec.description}</p>
-                    <p className="text-xs text-industrial-400 mt-2">💡 Impact: {rec.estimatedImpact}</p>
+                    <p className="text-xs text-industrial-400 mt-2 inline-flex items-center gap-1">
+                      <Lightbulb size={12} /> Impact: {rec.estimatedImpact}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -199,7 +202,20 @@ export default function AIAlertsDashboard() {
             <p className="text-carbon-400">No alerts. Start a simulation to generate real-time alerts.</p>
           </div>
         ) : (
-          filteredAlerts.slice(0, 50).map((alert) => (
+          filteredAlerts.slice(0, 50).map((alert) => {
+            const AlertIcon =
+              alert.type === 'critical'
+                ? AlertCircle
+                : alert.type === 'warning'
+                ? AlertTriangle
+                : Info
+            const tone =
+              alert.type === 'critical'
+                ? 'text-alert-critical'
+                : alert.type === 'warning'
+                ? 'text-alert-warning'
+                : 'text-alert-info'
+            return (
             <div
               key={alert.id}
               className={`industrial-card p-4 flex items-center gap-4 ${
@@ -208,9 +224,7 @@ export default function AIAlertsDashboard() {
                 'border-blue-700/30'
               }`}
             >
-              <span className="text-lg">
-                {alert.type === 'critical' ? '🔴' : alert.type === 'warning' ? '🟡' : '🔵'}
-              </span>
+              <AlertIcon size={18} className={tone} />
               <div className="flex-1">
                 <p className="text-sm text-white">{alert.message}</p>
                 <div className="flex items-center gap-3 mt-1">
@@ -230,7 +244,8 @@ export default function AIAlertsDashboard() {
                 Dismiss
               </button>
             </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>
