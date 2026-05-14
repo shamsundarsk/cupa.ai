@@ -43,11 +43,13 @@ export type MeshVariant =
   | 'pump'
   | 'storage'
   | 'sorting'
+  | 'hazard'
   | 'generic'
 
 export function pickMeshVariant(type: string): MeshVariant {
   const t = (type || '').toLowerCase()
   if (t.includes('conveyor') || t.includes('intake') || t.includes('belt')) return 'conveyor'
+  if (t.includes('hazard') || t.includes('containment') || t.includes('safety')) return 'hazard'
   if (t.includes('shredder') || t.includes('grind') || t.includes('crush') || t.includes('mill')) return 'shredder'
   if (t.includes('cutting') || t.includes('cut')) return 'cutting'
   if (t.includes('separator') || t.includes('magnet')) return 'separator'
@@ -88,6 +90,7 @@ export function meshHeight(variant: MeshVariant): number {
     case 'packaging': return 2.6
     case 'robot': return 3
     case 'pump': return 1.6
+    case 'hazard': return 3.2
     default: return 2.4
   }
 }
@@ -928,6 +931,66 @@ function GenericMesh({ active }: { active: boolean }) {
   )
 }
 
+function HazardMesh({ active }: { active: boolean }) {
+  return (
+    <group>
+      {/* Containment vault */}
+      <mesh position={[0, 1.2, 0]} castShadow>
+        <boxGeometry args={[2.4, 2.2, 2.0]} />
+        <meshStandardMaterial color={PAINT_RED} metalness={0.5} roughness={0.55} />
+      </mesh>
+      {/* Hazard stripes top + bottom */}
+      <mesh position={[0, 0.18, 0]}>
+        <boxGeometry args={[2.5, 0.08, 2.1]} />
+        <meshStandardMaterial color={'#111111'} metalness={0.4} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 2.32, 0]}>
+        <boxGeometry args={[2.5, 0.08, 2.1]} />
+        <meshStandardMaterial color={'#111111'} metalness={0.4} roughness={0.7} />
+      </mesh>
+      {/* Stripes on side */}
+      {[-0.8, -0.4, 0, 0.4, 0.8].map((x, i) => (
+        <mesh key={i} position={[x, 1.2, 1.005]}>
+          <boxGeometry args={[0.18, 0.6, 0.02]} />
+          <meshStandardMaterial color={i % 2 === 0 ? PAINT : '#0a0a0a'} metalness={0.5} roughness={0.6} />
+        </mesh>
+      ))}
+      {/* Beacon */}
+      <mesh position={[1.3, 2.5, 0]}>
+        <cylinderGeometry args={[0.18, 0.18, 0.18, 24]} />
+        <meshStandardMaterial color={'#fde047'} />
+      </mesh>
+      <mesh position={[1.3, 2.7, 0]}>
+        <sphereGeometry args={[0.18, 24, 24]} />
+        <meshStandardMaterial
+          color={PAINT_RED}
+          emissive={PAINT_RED}
+          emissiveIntensity={active ? 1.6 : 0.6}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* Hazard symbol panel (door) */}
+      <mesh position={[0, 1.2, 1.02]}>
+        <boxGeometry args={[1.2, 1.2, 0.04]} />
+        <meshStandardMaterial color={PAINT} metalness={0.4} roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 1.2, 1.045]}>
+        <ringGeometry args={[0.32, 0.42, 24]} />
+        <meshStandardMaterial color="#000" side={THREE.DoubleSide} />
+      </mesh>
+      {[0, (Math.PI * 2) / 3, (Math.PI * 4) / 3].map((rot, i) => (
+        <mesh key={i} position={[0, 1.2, 1.05]} rotation={[0, 0, rot]}>
+          <boxGeometry args={[0.18, 0.32, 0.02]} />
+          <meshStandardMaterial color="#000" />
+        </mesh>
+      ))}
+      {/* Cooling pipes */}
+      <Pipe from={[1.2, 0.6, 0]} to={[1.9, 0.6, 0]} color={STEEL} />
+      <ControlPanel position={[-1.0, 1.5, 0.7]} rotation={[0, Math.PI / 6, 0]} active={active} statusColor={PAINT_RED} />
+    </group>
+  )
+}
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Public dispatcher                                                          */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -956,6 +1019,7 @@ export function MachineMesh({
     case 'packaging': return <PackagingMesh active={active} />
     case 'robot': return <RobotMesh active={active} />
     case 'pump': return <PumpMesh active={active} />
+    case 'hazard': return <HazardMesh active={active} />
     default: return <GenericMesh active={active} />
   }
 }

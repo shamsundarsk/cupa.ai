@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS machines (
 -- Machine Telemetry (TimescaleDB hypertable)
 CREATE TABLE IF NOT EXISTS machine_telemetry (
     time TIMESTAMPTZ NOT NULL,
-    machine_id UUID NOT NULL,
+    machine_id VARCHAR(100) NOT NULL,
     temperature DOUBLE PRECISION,
     rpm DOUBLE PRECISION,
     pressure DOUBLE PRECISION,

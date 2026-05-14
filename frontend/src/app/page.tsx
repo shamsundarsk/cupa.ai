@@ -11,6 +11,7 @@ import DigitalTwinViewer from '@/components/twin/DigitalTwinViewer'
 import AIAlertsDashboard from '@/components/ai/AIAlertsDashboard'
 import SettingsPage from '@/components/settings/SettingsPage'
 import StateSync from '@/components/StateSync'
+import TelemetryUploader from '@/components/TelemetryUploader'
 
 export type ViewType = 
   | 'dashboard' 
@@ -51,6 +52,7 @@ export default function Home() {
   return (
     <div className="flex h-screen overflow-hidden">
       <StateSync />
+      <TelemetryUploader />
       <Sidebar currentView={currentView} onNavigate={setCurrentView} />
       <main className="flex-1 overflow-y-auto p-6">
         {renderView()}

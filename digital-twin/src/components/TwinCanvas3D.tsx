@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useCallback, useState } from 'react'
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber'
-import { ContactShadows, Environment, Grid, Html, OrbitControls } from '@react-three/drei'
+import { Billboard, ContactShadows, Environment, Grid, OrbitControls, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { MachineBase, MachineMesh, meshHeight, pickMeshVariant } from './machineMeshes'
 
@@ -37,11 +37,20 @@ interface Props {
   telemetryData: Record<string, TelemetryData>
   activeFlowIndex: number
   onMachineHover: (machineId: string | null) => void
+  selectedMachineId?: string | null
+  onMachineSelect?: (id: string | null) => void
 }
 
 const SPACING = 6.5
 
-export default function TwinCanvas3D({ machines, telemetryData, activeFlowIndex, onMachineHover }: Props) {
+export default function TwinCanvas3D({
+  machines,
+  telemetryData,
+  activeFlowIndex,
+  onMachineHover,
+  selectedMachineId,
+  onMachineSelect,
+}: Props) {
   const totalWidth = Math.max(machines.length, 1) * SPACING
   const camDistance = Math.min(60, Math.max(16, totalWidth * 0.55))
 
@@ -51,10 +60,13 @@ export default function TwinCanvas3D({ machines, telemetryData, activeFlowIndex,
       dpr={[1, 2]}
       camera={{ position: [camDistance * 0.7, camDistance * 0.55, camDistance * 0.7], fov: 45 }}
       style={{ background: 'linear-gradient(180deg, #1a2435 0%, #0d1422 100%)' }}
-      onPointerMissed={() => onMachineHover(null)}
+      onPointerMissed={() => {
+        onMachineHover(null)
+        onMachineSelect?.(null)
+      }}
     >
-      <ambientLight intensity={0.45} />
-      <hemisphereLight args={['#cbd5e1', '#1f2937', 0.55]} />
+      <ambientLight intensity={0.55} />
+      <hemisphereLight args={['#cbd5e1', '#1f2937', 0.65]} />
       <directionalLight
         castShadow
         position={[14, 22, 10]}
@@ -84,7 +96,9 @@ export default function TwinCanvas3D({ machines, telemetryData, activeFlowIndex,
             telemetry={telemetryData[machine.id]}
             position={[x, 0, 0]}
             isActive={index === activeFlowIndex}
+            isSelected={selectedMachineId === machine.id}
             onHover={onMachineHover}
+            onSelect={onMachineSelect}
           />
         )
       })}
@@ -121,12 +135,12 @@ export default function TwinCanvas3D({ machines, telemetryData, activeFlowIndex,
         infiniteGrid
       />
 
-      <fog attach="fog" args={['#0d1422', 35, 120]} />
+      <fog attach="fog" args={['#0d1422', 45, 130]} />
 
       <OrbitControls
         enableDamping
         dampingFactor={0.06}
-        minDistance={8}
+        minDistance={6}
         maxDistance={90}
         maxPolarAngle={Math.PI / 2.05}
         target={[0, 1.2, 0]}
@@ -159,13 +173,17 @@ function MachineStation({
   telemetry,
   position,
   isActive,
+  isSelected,
   onHover,
+  onSelect,
 }: {
   machine: MachineConfig
   telemetry?: TelemetryData
   position: [number, number, number]
   isActive: boolean
+  isSelected: boolean
   onHover: (id: string | null) => void
+  onSelect?: (id: string | null) => void
 }) {
   const variant = useMemo(() => pickMeshVariant(machine.type), [machine.type])
   const height = meshHeight(variant)
@@ -193,13 +211,22 @@ function MachineStation({
     document.body.style.cursor = 'default'
   }, [onHover])
 
+  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation()
+    onSelect?.(isSelected ? null : machine.id)
+  }, [machine.id, isSelected, onSelect])
+
+  // Stagger label heights by index so labels never collide visually
+  const labelY = height + 1.0
+
   return (
     <group
       position={position}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
+      onClick={handleClick}
     >
-      <MachineBase active={active || hovered} />
+      <MachineBase active={active || hovered || isSelected} />
       <MachineMesh variant={variant} active={active} />
 
       <Beacon position={[0, height + 0.5, 0]} color={statusColor} pulsing={state === 'critical' || isActive} />
@@ -207,26 +234,121 @@ function MachineStation({
       <pointLight
         position={[0, height * 0.55, 0]}
         color={isActive ? '#22c55e' : statusColor}
-        intensity={isActive ? 2 : active ? 1.4 : 0.6}
+        intensity={isActive || isSelected ? 2.4 : active ? 1.4 : 0.6}
         distance={6}
       />
 
-      {isActive && <ActiveRing />}
+      {(isActive || isSelected) && <ActiveRing color={isSelected ? '#22d3ee' : '#4ade80'} />}
 
-      <Html position={[0, height + 1.1, 0]} center distanceFactor={10} occlude="blending">
-        <div className="px-2.5 py-1 rounded-md bg-black/70 text-white text-[11px] font-mono whitespace-nowrap border border-white/10 backdrop-blur-sm">
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
-            style={{ background: statusColor }}
-          />
-          {machine.name}
-          {telemetry && (
-            <span className="text-emerald-300/90 ml-2">
-              {Math.round(telemetry.efficiencyScore)}%
-            </span>
-          )}
-        </div>
-      </Html>
+      {/* Always-visible billboarded label panel */}
+      <Billboard position={[0, labelY, 0]} follow lockX={false} lockY={false} lockZ={false}>
+        <LabelPanel
+          name={machine.name}
+          state={state}
+          statusColor={statusColor}
+          efficiency={telemetry?.efficiencyScore}
+          throughput={telemetry?.throughput}
+          isSelected={isSelected}
+          isHovered={hovered}
+        />
+      </Billboard>
+    </group>
+  )
+}
+
+function LabelPanel({
+  name,
+  state,
+  statusColor,
+  efficiency,
+  throughput,
+  isSelected,
+  isHovered,
+}: {
+  name: string
+  state: string
+  statusColor: string
+  efficiency?: number
+  throughput?: number
+  isSelected: boolean
+  isHovered: boolean
+}) {
+  // Background plate — wider when selected/hovered
+  const width = isSelected || isHovered ? 3.2 : 2.6
+  const height = isSelected ? 0.92 : 0.62
+  const baseColor = isSelected ? '#0d1322' : '#0a1020'
+  const borderColor = isSelected ? '#22d3ee' : 'rgba(148,163,184,0.35)'
+
+  return (
+    <group>
+      {/* Plate background */}
+      <mesh position={[0, 0, -0.01]}>
+        <planeGeometry args={[width, height]} />
+        <meshBasicMaterial color={baseColor} transparent opacity={0.92} />
+      </mesh>
+      {/* Border accent */}
+      <mesh position={[0, 0, -0.005]}>
+        <planeGeometry args={[width + 0.04, height + 0.04]} />
+        <meshBasicMaterial color={borderColor} transparent opacity={0.45} />
+      </mesh>
+      {/* Status dot */}
+      <mesh position={[-width / 2 + 0.2, height / 2 - 0.18, 0]}>
+        <circleGeometry args={[0.07, 24]} />
+        <meshBasicMaterial color={statusColor} />
+      </mesh>
+      {/* Name */}
+      <Text
+        position={[-width / 2 + 0.34, height / 2 - 0.18, 0]}
+        anchorX="left"
+        anchorY="middle"
+        fontSize={0.22}
+        color="#ffffff"
+        outlineWidth={0.012}
+        outlineColor="#000"
+        maxWidth={width - 0.55}
+        clipRect={[0, -0.2, width - 0.55, 0.2]}
+      >
+        {name}
+      </Text>
+      {/* Sub-row: state + KPIs */}
+      <Text
+        position={[-width / 2 + 0.34, height / 2 - 0.45, 0]}
+        anchorX="left"
+        anchorY="middle"
+        fontSize={0.15}
+        color={statusColor}
+        outlineWidth={0.006}
+        outlineColor="#000"
+      >
+        {state.toUpperCase()}
+      </Text>
+      {efficiency !== undefined && (
+        <Text
+          position={[width / 2 - 0.2, height / 2 - 0.45, 0]}
+          anchorX="right"
+          anchorY="middle"
+          fontSize={0.15}
+          color="#86efac"
+          outlineWidth={0.006}
+          outlineColor="#000"
+        >
+          {`${Math.round(efficiency)}% eff`}
+        </Text>
+      )}
+      {/* Selected: extra metrics */}
+      {isSelected && throughput !== undefined && (
+        <Text
+          position={[0, -height / 2 + 0.18, 0]}
+          anchorX="center"
+          anchorY="middle"
+          fontSize={0.14}
+          color="#cbd5e1"
+          outlineWidth={0.006}
+          outlineColor="#000"
+        >
+          {`${throughput.toFixed(0)} kg/h · click again to deselect`}
+        </Text>
+      )}
     </group>
   )
 }
@@ -255,7 +377,7 @@ function Beacon({
   )
 }
 
-function ActiveRing() {
+function ActiveRing({ color = '#4ade80' }: { color?: string }) {
   const ref = useRef<THREE.Mesh>(null)
   useFrame(() => {
     if (!ref.current) return
@@ -266,8 +388,8 @@ function ActiveRing() {
     <mesh ref={ref} position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       <ringGeometry args={[1.7, 2.0, 32]} />
       <meshStandardMaterial
-        color="#4ade80"
-        emissive="#4ade80"
+        color={color}
+        emissive={color}
         emissiveIntensity={1.5}
         transparent
         opacity={0.5}

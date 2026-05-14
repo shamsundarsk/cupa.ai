@@ -106,13 +106,13 @@ class MachineResponse(BaseModel):
 
 class TelemetryPoint(BaseModel):
     machine_id: str
-    timestamp: datetime
+    timestamp: Optional[datetime] = None
     temperature: float
     rpm: float
     pressure: float
     throughput: float
     energy_consumption: float
-    machine_state: MachineState
+    machine_state: str
     failure_probability: float
     maintenance_score: float
     material_quantity: float

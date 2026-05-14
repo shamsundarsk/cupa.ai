@@ -2,10 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+:root {
+  color-scheme: dark;
+}
+
+html, body {
   margin: 0;
   padding: 0;
   background: #0a0f1a;
   color: white;
-  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.industrial-card {
+  background: rgba(13, 19, 33, 0.85);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(8px);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+  border-radius: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Utility for grid pattern background */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(34, 197, 94, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 197, 94, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
