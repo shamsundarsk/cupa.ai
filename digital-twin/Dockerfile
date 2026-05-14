@@ -9,6 +9,10 @@ ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_MAIN_APP_URL=$NEXT_PUBLIC_MAIN_APP_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
+# Force Next.js to bind to all interfaces inside the container.
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3001
+
 COPY package.json package-lock.json* ./
 RUN npm install
 
@@ -18,4 +22,6 @@ RUN npm run build
 
 EXPOSE 3001
 
-CMD ["npm", "start"]
+# Bind explicitly so the container listens on every interface — defensive
+# against any host-resolution oddities inside Docker.
+CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3001"]
