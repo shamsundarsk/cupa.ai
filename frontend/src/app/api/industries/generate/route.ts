@@ -25,11 +25,15 @@ export async function POST(request: Request) {
       : undefined
 
   // Read API key at request time — avoids Next.js build-time dead-code elimination.
-  const apiKey = process.env['OPENAI_API_KEY'] || ''
-  const model = process.env['OPENAI_MODEL'] || 'gpt-4o-mini'
+  // Supports both OpenAI and Groq (OpenAI-compatible API).
+  const apiKey = process.env['OPENAI_API_KEY'] || process.env['GROQ_API_KEY'] || ''
+  const model = process.env['OPENAI_MODEL'] || process.env['GROQ_MODEL'] || 'llama-3.3-70b-versatile'
+  const baseUrl = process.env['AI_BASE_URL'] || (
+    process.env['GROQ_API_KEY'] ? 'https://api.groq.com/openai/v1' : 'https://api.openai.com/v1'
+  )
 
   try {
-    const { data, source } = await generateIndustry({ name, requirements, machineCount }, apiKey, model)
+    const { data, source } = await generateIndustry({ name, requirements, machineCount }, apiKey, model, baseUrl)
     return NextResponse.json({ industry: data, source })
   } catch (e: any) {
     return NextResponse.json(

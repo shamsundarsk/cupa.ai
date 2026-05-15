@@ -583,7 +583,8 @@ interface OpenAIClient {
   generate: (input: GenerateIndustryInput) => Promise<GeneratedIndustry>
 }
 
-function makeOpenAIClient(apiKey: string, modelName?: string): OpenAIClient {
+function makeOpenAIClient(apiKey: string, modelName?: string, baseUrl?: string): OpenAIClient {
+  const endpoint = baseUrl || 'https://api.openai.com/v1'
   return {
     generate: async (input) => {
       const userPrompt = [
@@ -594,14 +595,14 @@ function makeOpenAIClient(apiKey: string, modelName?: string): OpenAIClient {
         .filter(Boolean)
         .join('\n\n')
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch(`${endpoint}/chat/completions`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: modelName || 'gpt-4o-mini',
+          model: modelName || 'llama-3.3-70b-versatile',
           temperature: 0.4,
           response_format: { type: 'json_object' },
           messages: [
@@ -703,20 +704,22 @@ export async function generateIndustry(
   input: GenerateIndustryInput,
   apiKey?: string,
   model?: string,
+  baseUrl?: string,
 ): Promise<{
   data: GeneratedIndustry
   source: 'openai' | 'deterministic'
 }> {
   // Accept key as parameter (from API route) or fall back to env (for local dev).
-  const key = apiKey || process.env['OPENAI_API_KEY'] || ''
-  const openaiModel = model || process.env['OPENAI_MODEL'] || 'gpt-4o-mini'
+  const key = apiKey || process.env['OPENAI_API_KEY'] || process.env['GROQ_API_KEY'] || ''
+  const openaiModel = model || process.env['OPENAI_MODEL'] || process.env['GROQ_MODEL'] || 'llama-3.3-70b-versatile'
+  const url = baseUrl || process.env['AI_BASE_URL'] || 'https://api.openai.com/v1'
   if (key) {
     try {
-      const client = makeOpenAIClient(key, openaiModel)
+      const client = makeOpenAIClient(key, openaiModel, url)
       const data = await client.generate(input)
       return { data, source: 'openai' }
     } catch (e) {
-      console.warn('[industryGenerator] OpenAI failed, falling back:', e)
+      console.warn('[industryGenerator] AI generation failed, falling back:', e)
     }
   }
   return { data: generateIndustryDeterministic(input), source: 'deterministic' }
