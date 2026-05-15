@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useStore } from '@/store/useStore'
-import { buildIndustryEntries, IndustryEntry } from '@/data/industryRegistry'
+import { buildIndustryEntries, IndustryEntry, machinesForIndustry } from '@/data/industryRegistry'
+import { MachineConfig } from '@/types'
 import {
   ArrowRight,
   MachineIcon,
@@ -17,10 +18,10 @@ interface IndustrySelectorProps {
 }
 
 const layouts = [
-  { id: 'small' as const, name: 'Small Plant', machines: '3-5', description: 'Compact production line' },
-  { id: 'medium' as const, name: 'Medium Plant', machines: '5-10', description: 'Standard factory floor' },
-  { id: 'enterprise' as const, name: 'Enterprise Plant', machines: '10-20+', description: 'Full-scale production' },
-  { id: 'custom' as const, name: 'Custom Layout', machines: 'Any', description: 'Design your own layout' },
+  { id: 'small' as const, name: 'Small Plant', machines: '3-5', description: 'Compact production line', target: 4 },
+  { id: 'medium' as const, name: 'Medium Plant', machines: '5-10', description: 'Standard factory floor', target: 7 },
+  { id: 'enterprise' as const, name: 'Enterprise Plant', machines: '10-20+', description: 'Full-scale production', target: 12 },
+  { id: 'custom' as const, name: 'Custom Layout', machines: 'Any', description: 'Design your own layout', target: 0 },
 ]
 
 export default function IndustrySelector({ onNext }: IndustrySelectorProps) {
@@ -31,11 +32,33 @@ export default function IndustrySelector({ onNext }: IndustrySelectorProps) {
     setFactoryLayout,
     customIndustries,
     removeCustomIndustry,
+    setMachines,
   } = useStore()
   const [step, setStep] = useState<1 | 2>(1)
   const [aiOpen, setAiOpen] = useState(false)
 
   const industries: IndustryEntry[] = buildIndustryEntries(customIndustries)
+
+  /** Auto-populate machines based on layout target when proceeding to Step 3. */
+  const handleConfigureMachines = () => {
+    const layout = layouts.find((l) => l.id === factoryLayout)
+    const target = layout?.target ?? 0
+    if (target > 0 && selectedIndustry) {
+      const available = machinesForIndustry(selectedIndustry, customIndustries)
+      const count = Math.min(target, available.length)
+      const selected = available.slice(0, count)
+      const configs: MachineConfig[] = selected.map((def, idx) => ({
+        id: `${def.type}_${Date.now()}_${idx}`,
+        type: def.type,
+        name: def.name,
+        position: { x: idx * 200, y: 100 },
+        parameters: Object.fromEntries(def.parameters.map((p) => [p.key, p.default])),
+        connections: [],
+      }))
+      setMachines(configs)
+    }
+    onNext()
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -176,7 +199,7 @@ export default function IndustrySelector({ onNext }: IndustrySelectorProps) {
               Back
             </button>
             <button
-              onClick={onNext}
+              onClick={handleConfigureMachines}
               className="px-6 py-3 bg-industrial-600 hover:bg-industrial-500 text-white rounded-lg transition-colors font-medium inline-flex items-center gap-2"
             >
               Configure Machines <ArrowRight size={16} />

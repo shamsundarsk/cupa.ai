@@ -17,12 +17,29 @@ export interface GeneratedIndustry {
 }
 
 const ALLOWED_ICON_HINTS = [
-  'cog', 'factory', 'intake', 'conveyor', 'sorting', 'shredder', 'magnetic', 'separator',
-  'chemical', 'beaker', 'filter', 'press', 'drying', 'storage', 'packaging', 'waste',
-  'cutting', 'sewing', 'dyeing', 'boiler', 'heat', 'flame', 'washing', 'inspection',
-  'mixer', 'mixing', 'reactor', 'oven', 'furnace', 'cooler', 'cooling', 'pump',
-  'compressor', 'motor', 'robot', 'assembly', 'printing', 'laser', 'electric', 'power',
-  'water', 'fabric', 'battery', 'quality',
+  // Universal
+  'conveyor', 'intake', 'storage', 'packaging', 'inspection', 'sorting', 'cooling', 'heating', 'mixer', 'pump', 'compressor', 'motor', 'robot', 'cog',
+  // Battery / Recycling / Chemical
+  'shredder', 'magnetic', 'separator', 'filter', 'press', 'drying', 'chemical', 'beaker', 'reactor', 'waste',
+  // Textile / Apparel
+  'cutting', 'sewing', 'dyeing', 'boiler', 'fabric', 'washing', 'ironing', 'spinning', 'weaving',
+  // Paper / Pulp
+  'pulper', 'refiner', 'forming', 'press_paper', 'calender', 'reel', 'deinker',
+  // Food & Beverage
+  'oven', 'fryer', 'pasteurizer', 'fermenter', 'bottling', 'capper', 'labeler', 'extruder', 'kneader', 'cooker', 'freezer',
+  // Metal Manufacturing
+  'furnace', 'rolling_mill', 'forge', 'lathe', 'cnc', 'welder', 'grinder', 'casting', 'milling', 'stamping',
+  // Pharmaceutical
+  'granulator', 'tablet_press', 'coater', 'capsule_filler', 'autoclave', 'centrifuge', 'lyophilizer',
+  // Plastics
+  'injection_molder', 'blow_molder', 'thermoformer', 'pelletizer',
+  // Electronics
+  'pick_and_place', 'soldering', 'pcb_etch', 'laser', 'reflow_oven',
+  // Power / Utilities
+  'turbine', 'generator', 'transformer', 'cooling_tower',
+  // Generic icons / fallback hints
+  'factory', 'flame', 'water', 'electric', 'power', 'quality', 'battery', 'assembly', 'printing',
+  'heat', 'mixing', 'cooler', 'hazard',
 ]
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -302,6 +319,136 @@ const MACHINE_TEMPLATES: MachineTemplate[] = [
       { key: 'pressure', label: 'Pressure', unit: 'bar', min: 0.5, max: 5, default: 1, editable: true },
     ],
   },
+
+  // Food & Beverage
+  {
+    name: 'Industrial Oven / Cooker',
+    category: 'Cooking',
+    iconHint: 'oven',
+    description: 'Heats, bakes, roasts, or cooks product at controlled temperature.',
+    outputs: ['Product temperature', 'Cook uniformity', 'Energy efficiency'],
+    triggers: ['oven', 'cook', 'bake', 'roast', 'chocolate', 'cocoa', 'confection', 'candy', 'food', 'bread', 'pastry', 'pizza'],
+    parameters: [
+      { key: 'oven_temperature', label: 'Oven Temperature', unit: '°C', min: 50, max: 350, default: 180, editable: true },
+      { key: 'residence_time', label: 'Residence Time', unit: 'min', min: 1, max: 120, default: 20, editable: true },
+      { key: 'airflow_rate', label: 'Airflow Rate', unit: 'm³/h', min: 100, max: 3000, default: 800, editable: true },
+      { key: 'energy_consumption', label: 'Energy Consumption', unit: 'kW', min: 10, max: 200, default: 55, editable: false },
+    ],
+  },
+  {
+    name: 'Tempering / Cooling Tunnel',
+    category: 'Tempering',
+    iconHint: 'cooling',
+    description: 'Precisely controls cooling rate for crystallization or setting.',
+    outputs: ['Product temperature', 'Cooling rate', 'Crystal quality'],
+    triggers: ['temper', 'cool', 'tunnel', 'chocolate', 'confection', 'candy', 'crystal', 'set', 'freeze', 'chill'],
+    parameters: [
+      { key: 'zone_temperature', label: 'Zone Temperature', unit: '°C', min: -20, max: 40, default: 12, editable: true },
+      { key: 'belt_speed', label: 'Belt Speed', unit: 'm/min', min: 0.5, max: 10, default: 3, editable: true },
+      { key: 'tunnel_length', label: 'Tunnel Length', unit: 'm', min: 3, max: 30, default: 12, editable: false },
+      { key: 'cooling_power', label: 'Cooling Power', unit: 'kW', min: 5, max: 100, default: 35, editable: false },
+    ],
+  },
+  {
+    name: 'Fermenter / Bioreactor',
+    category: 'Fermentation',
+    iconHint: 'fermenter',
+    description: 'Controlled biological fermentation for beverages, dairy, or bioprocessing.',
+    outputs: ['pH level', 'CO₂ production', 'Batch progress'],
+    triggers: ['ferment', 'brew', 'beer', 'wine', 'yogurt', 'dairy', 'yeast', 'bioreact', 'beverage', 'kombucha'],
+    parameters: [
+      { key: 'tank_temperature', label: 'Temperature', unit: '°C', min: 4, max: 45, default: 22, editable: true },
+      { key: 'mixing_speed', label: 'Agitation Speed', unit: 'rpm', min: 5, max: 200, default: 40, editable: true },
+      { key: 'tank_volume', label: 'Tank Volume', unit: 'L', min: 100, max: 50000, default: 5000, editable: true },
+      { key: 'ph_level', label: 'pH Level', unit: 'pH', min: 2, max: 12, default: 4.5, editable: false },
+    ],
+  },
+  {
+    name: 'Bottling / Filling Line',
+    category: 'Filling',
+    iconHint: 'bottling',
+    description: 'Fills containers (bottles, cans, pouches) at high speed.',
+    outputs: ['Fill accuracy', 'Throughput', 'Waste rate'],
+    triggers: ['bottle', 'fill', 'can', 'pour', 'dispens', 'liquid', 'beverage', 'juice', 'milk', 'water'],
+    parameters: [
+      { key: 'fill_speed', label: 'Fill Speed', unit: 'units/min', min: 10, max: 600, default: 120, editable: true },
+      { key: 'fill_volume', label: 'Fill Volume', unit: 'mL', min: 50, max: 5000, default: 500, editable: true },
+      { key: 'fill_accuracy', label: 'Fill Accuracy', unit: '%', min: 95, max: 99.9, default: 99.2, editable: false },
+      { key: 'power_consumption', label: 'Power Consumption', unit: 'kW', min: 2, max: 30, default: 8, editable: false },
+    ],
+  },
+  {
+    name: 'Molder / Depositor',
+    category: 'Forming',
+    iconHint: 'forming',
+    description: 'Deposits or molds product into final shape (chocolate molds, candy forms, etc.).',
+    outputs: ['Mold fill rate', 'Reject rate', 'Cycle time'],
+    triggers: ['mold', 'deposit', 'form', 'shape', 'chocolate', 'candy', 'confection', 'gummy', 'tablet'],
+    parameters: [
+      { key: 'cycle_rate', label: 'Cycle Rate', unit: 'cycles/min', min: 5, max: 120, default: 30, editable: true },
+      { key: 'mold_temperature', label: 'Mold Temperature', unit: '°C', min: 5, max: 60, default: 18, editable: true },
+      { key: 'deposit_weight', label: 'Deposit Weight', unit: 'g', min: 1, max: 500, default: 50, editable: true },
+      { key: 'reject_rate', label: 'Reject Rate', unit: '%', min: 0, max: 10, default: 2, editable: false },
+    ],
+  },
+  {
+    name: 'Extruder',
+    category: 'Extrusion',
+    iconHint: 'extruder',
+    description: 'Forces material through a die to create continuous shapes (pasta, snacks, plastics).',
+    outputs: ['Extrusion rate', 'Die pressure', 'Product uniformity'],
+    triggers: ['extrud', 'pasta', 'snack', 'noodle', 'pellet', 'plastic', 'pipe', 'profile', 'cereal'],
+    parameters: [
+      { key: 'screw_speed', label: 'Screw Speed', unit: 'rpm', min: 10, max: 500, default: 120, editable: true },
+      { key: 'barrel_temperature', label: 'Barrel Temperature', unit: '°C', min: 40, max: 300, default: 160, editable: true },
+      { key: 'die_pressure', label: 'Die Pressure', unit: 'bar', min: 5, max: 200, default: 60, editable: false },
+      { key: 'throughput', label: 'Throughput', unit: 'kg/h', min: 50, max: 3000, default: 500, editable: true },
+    ],
+  },
+
+  // Metal / CNC
+  {
+    name: 'CNC Machining Center',
+    category: 'Machining',
+    iconHint: 'cnc',
+    description: 'Computer-controlled multi-axis machining for precision metal parts.',
+    outputs: ['Part accuracy', 'Surface finish', 'Tool wear'],
+    triggers: ['cnc', 'machin', 'metal', 'mill', 'turn', 'lathe', 'precision', 'aluminum', 'steel', 'titanium'],
+    parameters: [
+      { key: 'spindle_speed', label: 'Spindle Speed', unit: 'rpm', min: 500, max: 24000, default: 8000, editable: true },
+      { key: 'feed_rate', label: 'Feed Rate', unit: 'mm/min', min: 50, max: 5000, default: 1200, editable: true },
+      { key: 'depth_of_cut', label: 'Depth of Cut', unit: 'mm', min: 0.1, max: 10, default: 2, editable: true },
+      { key: 'coolant_flow', label: 'Coolant Flow', unit: 'L/min', min: 1, max: 50, default: 12, editable: false },
+    ],
+  },
+  {
+    name: 'Industrial Furnace',
+    category: 'Heat Treatment',
+    iconHint: 'furnace',
+    description: 'High-temperature furnace for melting, annealing, or heat treatment.',
+    outputs: ['Chamber temperature', 'Energy efficiency', 'Batch status'],
+    triggers: ['furnace', 'melt', 'anneal', 'heat treat', 'forge', 'cast', 'smelt', 'foundry', 'kiln', 'glass'],
+    parameters: [
+      { key: 'chamber_temperature', label: 'Chamber Temperature', unit: '°C', min: 200, max: 1800, default: 850, editable: true },
+      { key: 'heating_rate', label: 'Heating Rate', unit: '°C/min', min: 1, max: 50, default: 10, editable: true },
+      { key: 'atmosphere', label: 'Atmosphere O₂', unit: '%', min: 0, max: 21, default: 0.5, editable: true },
+      { key: 'energy_consumption', label: 'Energy Consumption', unit: 'kW', min: 50, max: 2000, default: 350, editable: false },
+    ],
+  },
+  {
+    name: 'Welding Station',
+    category: 'Joining',
+    iconHint: 'welder',
+    description: 'Automated or semi-automated welding for metal fabrication.',
+    outputs: ['Weld quality', 'Deposition rate', 'Gas consumption'],
+    triggers: ['weld', 'join', 'fabricat', 'mig', 'tig', 'arc', 'spot'],
+    parameters: [
+      { key: 'current', label: 'Welding Current', unit: 'A', min: 50, max: 500, default: 180, editable: true },
+      { key: 'voltage', label: 'Arc Voltage', unit: 'V', min: 10, max: 40, default: 24, editable: true },
+      { key: 'wire_feed_speed', label: 'Wire Feed Speed', unit: 'm/min', min: 1, max: 20, default: 8, editable: true },
+      { key: 'gas_flow', label: 'Gas Flow', unit: 'L/min', min: 5, max: 30, default: 15, editable: false },
+    ],
+  },
 ]
 
 function slugify(s: string) {
@@ -381,45 +528,55 @@ export function generateIndustryDeterministic(input: GenerateIndustryInput): Gen
  * OpenAI-backed generator
  * ──────────────────────────────────────────────────────────────────────────── */
 
-const SYSTEM_PROMPT = `You are an industrial process engineer.
+const SYSTEM_PROMPT = `You are a senior industrial process engineer with deep expertise across ALL manufacturing sectors.
 
-Given an INDUSTRY NAME and optional REQUIREMENTS from a domain expert, design a realistic production line as a JSON object describing the industry and the sequence of machines needed.
+Given an INDUSTRY NAME and optional REQUIREMENTS from a domain expert, design a REALISTIC production line as a JSON object. The machines you propose MUST be the actual machines used in that specific industry — not generic placeholders. For example:
+- "Chocolate manufacturing" → conche, tempering machine, enrober, molder, cooling tunnel, wrapping machine
+- "Paper manufacturing" → pulper, refiner, headbox/forming section, press section, dryer section, calender, reel
+- "Pharmaceutical" → granulator, fluid bed dryer, tablet press, coating pan, blister packer
+- "Electronics assembly" → solder paste printer, pick-and-place, reflow oven, AOI inspection, wave soldering
+
+Use real machine names, real parameter ranges, and real units from the actual industry. Include manufacturer-style specificity where possible (e.g., "Ball Mill" not just "Grinder", "Conche" not just "Mixer").
 
 Output MUST match this exact JSON schema, with no surrounding prose:
 
 {
   "id": string,                     // snake_case slug derived from the name, max 48 chars
   "name": string,                   // human-readable industry name
-  "description": string,            // 1-2 sentences
+  "description": string,            // 1-2 sentences describing the production line
   "features": string[],             // 4-6 short capability tags
   "machines": [
     {
-      "type": string,               // unique snake_case id, prefixed with the industry slug
-      "name": string,               // human-readable machine name
-      "category": string,           // e.g. "Intake", "Processing", "Drying"
+      "type": string,               // unique snake_case id, prefixed with the industry slug (e.g., "chocolate_conche_0")
+      "name": string,               // human-readable machine name (be specific: "Conche" not "Mixer")
+      "category": string,           // e.g. "Intake", "Processing", "Tempering", "Forming", "Packaging"
       "icon": string,               // ONE keyword from this allowed list: ${ALLOWED_ICON_HINTS.join(', ')}
-      "description": string,        // 1 sentence
+      "description": string,        // 1 sentence describing what this machine does in this specific industry
       "parameters": [
         {
-          "key": string,            // snake_case
-          "label": string,
-          "unit": string,           // e.g. "°C", "rpm", "kg/h", "%"
+          "key": string,            // snake_case parameter key
+          "label": string,          // human-readable label
+          "unit": string,           // e.g. "°C", "rpm", "kg/h", "%", "bar"
           "min": number,
           "max": number,
-          "default": number,        // must be between min and max
-          "editable": boolean
+          "default": number,        // must be between min and max, should be a realistic operating point
+          "editable": boolean       // true for operator-adjustable params, false for read-only sensors
         }
-      ],                            // 4 to 8 parameters
+      ],                            // 4 to 8 parameters per machine — include both control params and sensor readings
       "outputs": string[]           // 3-5 short telemetry/output descriptors
     }
-  ]                                 // 4 to 12 machines, ordered by production flow (intake first, packaging/output last)
+  ]                                 // number of machines as specified in MACHINE COUNT TARGET, ordered by production flow
 }
 
 Rules:
-- Use realistic units and ranges grounded in real industrial equipment.
-- "icon" MUST be exactly one keyword from the allowed list.
-- Always include an intake/feeding stage first and a packaging/output stage last when applicable.
+- Use realistic units and ranges grounded in real industrial equipment for the SPECIFIC industry requested.
+- "icon" MUST be exactly one keyword from the allowed list. Pick the SINGLE most appropriate icon. Prefer industry-specific icons (e.g., 'fermenter' for food/beverage, 'furnace' for metal, 'tablet_press' for pharma, 'pick_and_place' for electronics) over generic ones like 'cog'.
+- The icon directly controls the 3D visualization of the machine in the digital twin — accuracy matters.
+- Always include an intake/feeding stage first and a packaging/output stage last.
+- Each machine must have a unique "type" field prefixed with the industry slug.
+- Parameters should include at least 2 editable control parameters and 2 read-only sensor parameters per machine.
 - Do not invent fields outside the schema.
+- Do NOT use generic names like "Processing Unit" or "Machine A" — use the real industry-specific machine name.
 `
 
 interface OpenAIClient {
