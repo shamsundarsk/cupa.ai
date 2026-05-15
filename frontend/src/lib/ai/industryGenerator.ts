@@ -583,7 +583,7 @@ interface OpenAIClient {
   generate: (input: GenerateIndustryInput) => Promise<GeneratedIndustry>
 }
 
-function makeOpenAIClient(apiKey: string): OpenAIClient {
+function makeOpenAIClient(apiKey: string, modelName?: string): OpenAIClient {
   return {
     generate: async (input) => {
       const userPrompt = [
@@ -601,7 +601,7 @@ function makeOpenAIClient(apiKey: string): OpenAIClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: modelName || 'gpt-4o-mini',
           temperature: 0.4,
           response_format: { type: 'json_object' },
           messages: [
@@ -699,14 +699,20 @@ function validateGenerated(raw: any, fallbackName: string): GeneratedIndustry {
  * Public entry point
  * ──────────────────────────────────────────────────────────────────────────── */
 
-export async function generateIndustry(input: GenerateIndustryInput): Promise<{
+export async function generateIndustry(
+  input: GenerateIndustryInput,
+  apiKey?: string,
+  model?: string,
+): Promise<{
   data: GeneratedIndustry
   source: 'openai' | 'deterministic'
 }> {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (apiKey) {
+  // Accept key as parameter (from API route) or fall back to env (for local dev).
+  const key = apiKey || process.env['OPENAI_API_KEY'] || ''
+  const openaiModel = model || process.env['OPENAI_MODEL'] || 'gpt-4o-mini'
+  if (key) {
     try {
-      const client = makeOpenAIClient(apiKey)
+      const client = makeOpenAIClient(key, openaiModel)
       const data = await client.generate(input)
       return { data, source: 'openai' }
     } catch (e) {

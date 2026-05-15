@@ -24,8 +24,12 @@ export async function POST(request: Request) {
       ? Math.min(12, Math.floor(body.machineCount))
       : undefined
 
+  // Read API key at request time — avoids Next.js build-time dead-code elimination.
+  const apiKey = process.env['OPENAI_API_KEY'] || ''
+  const model = process.env['OPENAI_MODEL'] || 'gpt-4o-mini'
+
   try {
-    const { data, source } = await generateIndustry({ name, requirements, machineCount })
+    const { data, source } = await generateIndustry({ name, requirements, machineCount }, apiKey, model)
     return NextResponse.json({ industry: data, source })
   } catch (e: any) {
     return NextResponse.json(
