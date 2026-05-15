@@ -65,10 +65,11 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
         {navItems.map((item) => {
           const Icon = item.icon
           if (item.id === 'twin') {
+            const twinUrl = process.env.NEXT_PUBLIC_TWIN_URL || 'http://localhost:3001'
             return (
               <a
                 key={item.id}
-                href="http://localhost:3001"
+                href={twinUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all duration-200 ${

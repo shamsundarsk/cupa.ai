@@ -6,16 +6,26 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:8000}
         NEXT_PUBLIC_WS_URL: ${WS_URL:-ws://localhost:8000}
+        NEXT_PUBLIC_TWIN_URL: ${TWIN_URL:-http://localhost:3001}
     ports:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:8000}
       - NEXT_PUBLIC_WS_URL=${WS_URL:-ws://localhost:8000}
+      - NEXT_PUBLIC_TWIN_URL=${TWIN_URL:-http://localhost:3001}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
     depends_on:
       - backend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/state"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   digital-twin:
     build:
@@ -27,9 +37,25 @@ services:
     ports:
       - "3001:3001"
     environment:
+      # Public URL of the main dashboard — only used for the outbound
+      # "Open main dashboard" anchor link in the UI.
       - NEXT_PUBLIC_MAIN_APP_URL=${SIM_URL:-http://localhost:3000}
       - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:8000}
+      # Runtime upstream for the same-origin server-side proxy
+      # (/api/state and /api/twin-action). Defaults to the docker
+      # service name so containers reach each other privately.
+      - MAIN_APP_URL=${MAIN_APP_URL:-http://frontend:3000}
+      - HOSTNAME=0.0.0.0
+      - PORT=3001
+    depends_on:
+      - frontend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   backend:
     build:
