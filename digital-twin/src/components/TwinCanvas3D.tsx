@@ -4,7 +4,15 @@ import { useMemo, useRef, useCallback, useState } from 'react'
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber'
 import { Billboard, ContactShadows, Environment, Grid, OrbitControls, Text } from '@react-three/drei'
 import * as THREE from 'three'
-import { MachineBase, MachineMesh, meshHeight, pickMeshVariant } from './machineMeshes'
+import {
+  MachineBase,
+  MachineMesh,
+  meshHeight,
+  pickMeshVariant,
+  familyFor,
+  ICON_TO_FAMILY,
+  type MeshFamily,
+} from './machineMeshes'
 
 interface MachineConfig {
   id: string
@@ -13,6 +21,8 @@ interface MachineConfig {
   position: { x: number; y: number }
   parameters: Record<string, number>
   connections: string[]
+  /** Optional icon hint (preferred). When present we map via ICON_TO_FAMILY. */
+  icon?: string
 }
 
 interface TelemetryData {
@@ -42,6 +52,26 @@ interface Props {
 }
 
 const SPACING = 6.5
+const ROW_GAP = 7.5
+const MAX_PER_ROW = 6
+
+/** Snake-style flow layout: wraps every MAX_PER_ROW machines and reverses
+ *  direction each row so the flow reads naturally. */
+function computeLayout(count: number): Array<{ x: number; z: number; flipFlow: boolean }> {
+  const rows = Math.ceil(count / MAX_PER_ROW)
+  const positions: Array<{ x: number; z: number; flipFlow: boolean }> = []
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / MAX_PER_ROW)
+    const col = i % MAX_PER_ROW
+    const machinesInThisRow = Math.min(MAX_PER_ROW, count - row * MAX_PER_ROW)
+    const reverse = row % 2 === 1
+    const localCol = reverse ? machinesInThisRow - 1 - col : col
+    const x = localCol * SPACING - ((machinesInThisRow - 1) * SPACING) / 2
+    const z = (row - (rows - 1) / 2) * ROW_GAP
+    positions.push({ x, z, flipFlow: reverse })
+  }
+  return positions
+}
 
 export default function TwinCanvas3D({
   machines,
@@ -51,8 +81,19 @@ export default function TwinCanvas3D({
   selectedMachineId,
   onMachineSelect,
 }: Props) {
-  const totalWidth = Math.max(machines.length, 1) * SPACING
-  const camDistance = Math.min(60, Math.max(16, totalWidth * 0.55))
+  const layout = useMemo(() => computeLayout(machines.length), [machines.length])
+
+  // Bounding extents drive camera framing + floor size.
+  const extents = useMemo(() => {
+    if (layout.length === 0) return { width: 24, depth: 16 }
+    const xs = layout.map((p) => p.x)
+    const zs = layout.map((p) => p.z)
+    const width = (Math.max(...xs) - Math.min(...xs)) + 12
+    const depth = (Math.max(...zs) - Math.min(...zs)) + 12
+    return { width, depth }
+  }, [layout])
+
+  const camDistance = Math.min(80, Math.max(18, Math.max(extents.width, extents.depth) * 0.8))
 
   return (
     <Canvas
@@ -85,16 +126,16 @@ export default function TwinCanvas3D({
 
       <Environment preset="warehouse" />
 
-      <FactoryFloor width={Math.max(40, totalWidth + 16)} depth={Math.max(20, totalWidth * 0.45 + 12)} />
+      <FactoryFloor width={Math.max(40, extents.width + 8)} depth={Math.max(20, extents.depth + 8)} />
 
       {machines.map((machine, index) => {
-        const x = index * SPACING - ((machines.length - 1) * SPACING) / 2
+        const pos = layout[index]
         return (
           <MachineStation
             key={machine.id}
             machine={machine}
             telemetry={telemetryData[machine.id]}
-            position={[x, 0, 0]}
+            position={[pos.x, 0, pos.z]}
             isActive={index === activeFlowIndex}
             isSelected={selectedMachineId === machine.id}
             onHover={onMachineHover}
@@ -105,24 +146,38 @@ export default function TwinCanvas3D({
 
       {machines.length > 1 &&
         machines.slice(0, -1).map((m, idx) => {
-          const x1 = idx * SPACING - ((machines.length - 1) * SPACING) / 2 + 1.5
-          const x2 = (idx + 1) * SPACING - ((machines.length - 1) * SPACING) / 2 - 1.5
+          const a = layout[idx]
+          const b = layout[idx + 1]
+          const sameRow = Math.abs(a.z - b.z) < 0.01
           const isLive =
             idx === activeFlowIndex - 1 ||
             (activeFlowIndex === 0 && idx === machines.length - 2)
-          return <ConveyorLink key={`link_${m.id}`} from={[x1, 0, 0]} to={[x2, 0, 0]} active={isLive} />
+          if (sameRow) {
+            const x1 = a.x + (b.x > a.x ? 1.5 : -1.5)
+            const x2 = b.x + (b.x > a.x ? -1.5 : 1.5)
+            return <ConveyorLink key={`link_${m.id}`} from={[x1, 0, a.z]} to={[x2, 0, b.z]} active={isLive} />
+          }
+          // Vertical inter-row link
+          return (
+            <ConveyorLink
+              key={`link_${m.id}`}
+              from={[a.x, 0, a.z + (b.z > a.z ? 1.5 : -1.5)]}
+              to={[b.x, 0, b.z + (b.z > a.z ? -1.5 : 1.5)]}
+              active={isLive}
+            />
+          )
         })}
 
       <ContactShadows
         position={[0, 0.01, 0]}
         opacity={0.55}
-        scale={Math.max(40, totalWidth + 20)}
+        scale={Math.max(40, Math.max(extents.width, extents.depth) + 12)}
         blur={2.5}
         far={20}
       />
 
       <Grid
-        args={[60, 30]}
+        args={[80, 60]}
         position={[0, 0.005, 0]}
         cellSize={1}
         cellThickness={0.4}
@@ -130,18 +185,18 @@ export default function TwinCanvas3D({
         sectionSize={5}
         sectionThickness={1}
         sectionColor="#3c4a6b"
-        fadeDistance={Math.max(40, totalWidth + 20)}
+        fadeDistance={Math.max(40, Math.max(extents.width, extents.depth) + 16)}
         fadeStrength={1.2}
         infiniteGrid
       />
 
-      <fog attach="fog" args={['#0d1422', 45, 130]} />
+      <fog attach="fog" args={['#0d1422', 45, 140]} />
 
       <OrbitControls
         enableDamping
         dampingFactor={0.06}
         minDistance={6}
-        maxDistance={90}
+        maxDistance={120}
         maxPolarAngle={Math.PI / 2.05}
         target={[0, 1.2, 0]}
       />
@@ -185,8 +240,11 @@ function MachineStation({
   onHover: (id: string | null) => void
   onSelect?: (id: string | null) => void
 }) {
-  const variant = useMemo(() => pickMeshVariant(machine.type), [machine.type])
-  const height = meshHeight(variant)
+  const family: MeshFamily = useMemo(() => {
+    if (machine.icon && ICON_TO_FAMILY[machine.icon]) return ICON_TO_FAMILY[machine.icon]
+    return familyFor(machine.icon) === 'generic' ? pickMeshVariant(machine.type) : familyFor(machine.icon)
+  }, [machine.icon, machine.type])
+  const height = meshHeight(family)
   const [hovered, setHovered] = useState(false)
 
   const state = telemetry?.machineState ?? 'idle'
@@ -216,7 +274,6 @@ function MachineStation({
     onSelect?.(isSelected ? null : machine.id)
   }, [machine.id, isSelected, onSelect])
 
-  // Stagger label heights by index so labels never collide visually
   const labelY = height + 1.0
 
   return (
@@ -227,9 +284,7 @@ function MachineStation({
       onClick={handleClick}
     >
       <MachineBase active={active || hovered || isSelected} />
-      <MachineMesh variant={variant} active={active} />
-
-      <Beacon position={[0, height + 0.5, 0]} color={statusColor} pulsing={state === 'critical' || isActive} />
+      <MachineMesh family={family} machine={machine} telemetry={telemetry} isActiveFlow={isActive} />
 
       <pointLight
         position={[0, height * 0.55, 0]}

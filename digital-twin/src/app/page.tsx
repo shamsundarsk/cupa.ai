@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { GlobeIcon, PlugZapIcon } from '@/components/icons'
 import { Shell, TopBar } from '@/components/Shell'
 import StoryOverlay from '@/components/StoryOverlay'
@@ -31,10 +31,23 @@ export default function DigitalTwinPage() {
 
   const status = state.simulation.status
 
-  // Auto-disconnect when sim stops (effect, not during render)
+  // Auto-disconnect when sim stops — debounced to avoid transient disconnects.
+  // Requires 5 consecutive polls (~7.5s) showing non-running before disconnecting.
+  const disconnectCountRef = useRef(0)
   useEffect(() => {
-    if (connected && status !== 'running') {
+    if (!connected) {
+      disconnectCountRef.current = 0
+      return
+    }
+    if (status === 'running' || status === 'paused') {
+      disconnectCountRef.current = 0
+      return
+    }
+    // status is 'idle' or 'stopped' — increment counter
+    disconnectCountRef.current += 1
+    if (disconnectCountRef.current >= 5) {
       setConnected(false)
+      disconnectCountRef.current = 0
     }
   }, [connected, status])
 
